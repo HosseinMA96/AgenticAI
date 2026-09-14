@@ -1,0 +1,63 @@
+{
+  "workflow_id": "c60bd2f0-7004-4c75-8143-2ac5ae8fae1e",
+  "workflow_version": "1.0.0",
+  "workflow_structure_hash": "ed00a25bc15d52f6",
+  "checkpoint_id": "8467d11c-dc30-4291-9f51-76e17f1317a5",
+  "created_at": "2026-09-13T13:18:15.801864",
+  "checkpoint_type": "auto",
+  "execution": {
+    "id": "e51f8505-78ce-40eb-9bcd-bdae237ed298",
+    "workflow_id": "c60bd2f0-7004-4c75-8143-2ac5ae8fae1e",
+    "status": "running",
+    "start_time": "2026-09-13T13:18:13.796511",
+    "end_time": null,
+    "state": {
+      "text": "sales_data.csv",
+      "fetch_output": {
+        "result": "Fetched: sales_data.csv"
+      },
+      "process_output": {
+        "result": "Processed: Fetched: sales_data.csv"
+      }
+    },
+    "step_executions": {
+      "fetch": {
+        "step_id": "fetch",
+        "status": "completed",
+        "start_time": "2026-09-13T13:18:13.796690",
+        "end_time": "2026-09-13T13:18:14.798174",
+        "input_data": {
+          "text": "sales_data.csv"
+        },
+        "output_data": {
+          "result": "Fetched: sales_data.csv"
+        },
+        "error": null,
+        "retry_count": 0
+      },
+      "process": {
+        "step_id": "process",
+        "status": "completed",
+        "start_time": "2026-09-13T13:18:14.799866",
+        "end_time": "2026-09-13T13:18:15.801364",
+        "input_data": {
+          "result": "Fetched: sales_data.csv"
+        },
+        "output_data": {
+          "result": "Processed: Fetched: sales_data.csv"
+        },
+        "error": null,
+        "retry_count": 0
+      }
+    },
+    "error": null
+  },
+  "completed_step_ids": [
+    "fetch",
+    "process"
+  ],
+  "pending_step_ids": [
+    "validate",
+    "save"
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "workflow_id": "0cf38767-9dc3-4685-af63-7d23380719f8",
+  "workflow_version": "1.0.0",
+  "workflow_structure_hash": "ed00a25bc15d52f6",
+  "checkpoint_id": "49d8ec8c-5a28-4b4d-ac83-06654c02abc2",
+  "created_at": "2026-09-13T13:18:20.822899",
+  "checkpoint_type": "auto",
+  "execution": {
+    "id": "c4d7d366-5192-495c-a861-6d7b0d938b6d",
+    "workflow_id": "0cf38767-9dc3-4685-af63-7d23380719f8",
+    "status": "running",
+    "start_time": "2026-09-13T13:18:17.813443",
+    "end_time": null,
+    "state": {
+      "text": "product_reviews.csv",
+      "fetch_output": {
+        "result": "Fetched: product_reviews.csv"
+      },
+      "process_output": {
+        "result": "Processed: Fetched: product_reviews.csv"
+      },
+      "validate_output": {
+        "result": "Validated: Processed: Fetched: product_reviews.csv"
+      }
+    },
+    "step_executions": {
+      "fetch": {
+        "step_id": "fetch",
+        "status": "completed",
+        "start_time": "2026-09-13T13:18:17.813499",
+        "end_time": "2026-09-13T13:18:18.814656",
+        "input_data": {
+          "text": "product_reviews.csv"
+        },
+        "output_data": {
+          "result": "Fetched: product_reviews.csv"
+        },
+        "error": null,
+        "retry_count": 0
+      },
+      "process": {
+        "step_id": "process",
+        "status": "completed",
+        "start_time": "2026-09-13T13:18:18.816920",
+        "end_time": "2026-09-13T13:18:19.818513",
+        "input_data": {
+          "result": "Fetched: product_reviews.csv"
+        },
+        "output_data": {
+          "result": "Processed: Fetched: product_reviews.csv"
+        },
+        "error": null,
+        "retry_count": 0
+      },
+      "validate": {
+        "step_id": "validate",
+        "status": "completed",
+        "start_time": "2026-09-13T13:18:19.820611",
+        "end_time": "2026-09-13T13:18:20.822526",
+        "input_data": {
+          "result": "Processed: Fetched: product_reviews.csv"
+        },
+        "output_data": {
+          "result": "Validated: Processed: Fetched: product_reviews.csv"
+        },
+        "error": null,
+        "retry_count": 0
+      }
+    },
+    "error": null
+  },
+  "completed_step_ids": [
+    "fetch",
+    "process",
+    "validate"
+  ],
+  "pending_step_ids": [
+    "save"
+  ]
+}

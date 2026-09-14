@@ -1,0 +1,46 @@
+{
+  "workflow_id": "c60bd2f0-7004-4c75-8143-2ac5ae8fae1e",
+  "workflow_version": "1.0.0",
+  "workflow_structure_hash": "ed00a25bc15d52f6",
+  "checkpoint_id": "81e56093-e180-4498-8bda-311a5a2ff054",
+  "created_at": "2026-09-13T13:18:14.798783",
+  "checkpoint_type": "auto",
+  "execution": {
+    "id": "e51f8505-78ce-40eb-9bcd-bdae237ed298",
+    "workflow_id": "c60bd2f0-7004-4c75-8143-2ac5ae8fae1e",
+    "status": "running",
+    "start_time": "2026-09-13T13:18:13.796511",
+    "end_time": null,
+    "state": {
+      "text": "sales_data.csv",
+      "fetch_output": {
+        "result": "Fetched: sales_data.csv"
+      }
+    },
+    "step_executions": {
+      "fetch": {
+        "step_id": "fetch",
+        "status": "completed",
+        "start_time": "2026-09-13T13:18:13.796690",
+        "end_time": "2026-09-13T13:18:14.798174",
+        "input_data": {
+          "text": "sales_data.csv"
+        },
+        "output_data": {
+          "result": "Fetched: sales_data.csv"
+        },
+        "error": null,
+        "retry_count": 0
+      }
+    },
+    "error": null
+  },
+  "completed_step_ids": [
+    "fetch"
+  ],
+  "pending_step_ids": [
+    "process",
+    "validate",
+    "save"
+  ]
+}

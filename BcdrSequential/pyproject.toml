@@ -1,0 +1,14 @@
+[project]
+name = "bcdr-sequential"
+version = "0.1.0"
+description = "Learning project: graph-based agentic workflow for synthetic BCDR compliance evidence"
+requires-python = ">=3.12"
+dependencies = [
+    "agent-framework",
+    "pydantic>=2",
+    "python-dotenv",
+    "azure-identity",
+]
+
+[tool.uv]
+package = false
