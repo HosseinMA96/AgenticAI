@@ -1,0 +1,9 @@
+[2024-11-02 03:14:02Z] FAILOVER TEST START svc-alpha region=eu-west-1 -> eu-north-1
+[2024-11-02 03:14:05Z] draining primary connections... ok
+[2024-11-02 03:14:41Z] DNS cutover eu-north-1... ok
+[2024-11-02 03:16:12Z] replica promoted to primary... ok
+[2024-11-02 03:16:50Z] smoke tests: 18/20 passed, 2 flaky timeouts on /reports endpoint
+[2024-11-02 03:17:00Z] FAILOVER TEST END svc-alpha result=PARTIAL_SUCCESS
+--
+[2023-06-19 09:02:11Z] FAILOVER TEST START svc-alpha region=eu-west-1 -> eu-north-1
+[2023-06-19 09:04:55Z] FAILOVER TEST END svc-alpha result=SUCCESS

@@ -1,0 +1,11 @@
+{
+  "service_id": "svc-beta",
+  "primary_region": "us-east-1",
+  "secondary_region": "us-west-2",
+  "escalation_contacts": [
+    {"role": "primary_oncall", "name": "Marcus Lee", "channel": "#svc-beta-incidents"},
+    {"role": "secondary_oncall", "name": "Grace Han", "channel": "#svc-beta-incidents"},
+    {"role": "engineering_manager", "name": "Ola Fagbemi", "channel": "email"}
+  ],
+  "last_updated": "2026-03-01"
+}

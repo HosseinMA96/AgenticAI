@@ -1,0 +1,11 @@
+{
+  "service_id": "svc-alpha",
+  "primary_region": "eu-west-1",
+  "secondary_region": "eu-north-1",
+  "escalation_contacts": [
+    {"role": "primary_oncall", "name": "Priya Nair", "channel": "#svc-alpha-incidents"},
+    {"role": "secondary_oncall", "name": "Tom Whitfield", "channel": "#svc-alpha-incidents"},
+    {"role": "engineering_manager", "name": "Ada Osei", "channel": "email"}
+  ],
+  "last_updated": "2025-08-01"
+}

@@ -1,0 +1,6 @@
+[2026-02-19 22:10:00Z] FAILOVER TEST START svc-gamma region=ap-southeast-1 -> ap-northeast-1
+[2026-02-19 22:10:44Z] draining primary connections... timeout after 30s, forcing drain
+[2026-02-19 22:11:20Z] DNS cutover ap-northeast-1... ok
+[2026-02-19 22:11:55Z] replica promoted to primary... WARN replica lag was 340s at promotion
+[2026-02-19 22:12:30Z] smoke tests: aborted, test runner crashed (see incident INC-4471)
+[2026-02-19 22:12:31Z] FAILOVER TEST END svc-gamma result=UNKNOWN

@@ -1,0 +1,11 @@
+{
+  "service_id": "svc-gamma",
+  "primary_region": "ap-southeast-1",
+  "secondary_region": "ap-northeast-1",
+  "escalation_contacts": [
+    {"role": "primary_oncall", "name": "TBD", "channel": ""},
+    {"role": "secondary_oncall", "name": "", "channel": ""},
+    {"role": "engineering_manager", "name": "TBD", "channel": ""}
+  ],
+  "last_updated": "2024-05-02"
+}
