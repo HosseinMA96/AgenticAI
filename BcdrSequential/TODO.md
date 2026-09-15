@@ -185,7 +185,7 @@ streaming, serialization, checkpoint/resume).
       acceptance test in this project; autonomous orchestrator fits when the number/
       order of steps depends on what's discovered at runtime).
 
-## Phase 6 — Swap in real agents (required, not stretch)
+## Phase 6 — Swap in real agents (required, not stretch) ✅
 Decided 2026-09-14: the rule-based `evaluate_control`/`write_report` stand-ins (see
 Phase 2) are a deliberate placeholder, not the deliverable — once the graph shape is
 finalized and tested (Phases 3-5 passing), swap their internals for real Azure OpenAI
@@ -193,21 +193,65 @@ calls. This is a "must," not optional, precisely because the brief's stack secti
 (§3) names Azure OpenAI/Foundry as the model and the six concepts are meant to be
 exercised by an agentic workflow, not a pipeline of regexes wearing an agentic
 framework's clothes.
-- [ ] `evaluate_control` ×4: replace `_evaluate_<control_id>` heuristics with an
-      Azure OpenAI `ChatAgent` call using each `ControlSpec.evaluation_prompt`,
-      structured output parsed into `Finding`. Auth via `az login` +
-      `DefaultAzureCredential`, endpoint/deployment from root `.env`.
-- [ ] `write_report`: replace the hand-built markdown with an agent call that drafts
-      the packet from `FindingSet` (still validated back into `EvidencePacket`).
-- [ ] Re-run the M1-M3 acceptance tests against the swapped graph — confirm nothing
-      about graph structure, streaming, checkpointing, or serialization had to change,
-      only the two node internals. This is the actual proof of the type-safety claim
-      made in Phase 2's discussion.
-- [ ] Discuss: what changes about failure modes once these nodes are non-deterministic
-      (model latency/timeouts, malformed structured output, cost) vs. the rule-based
-      version — does checkpoint/resume behave any differently against a node that may
-      have partially-billed a real API call before being killed?
-- [ ] `ingest` stays deterministic/no-LLM per the brief — not in scope for this swap
+
+**Real-environment findings before coding (checked, not assumed):** `agent_framework`
+has no `ChatAgent` in this installed version (1.18.0) — it's `Agent`. Structured
+output is `agent.run(prompt, options={"response_format": SomeModel})`, read back via
+`response.value`. The right client is `agent_framework.openai.OpenAIChatClient` (its
+`azure_endpoint=`/`api_key=`/`credential=` params) — not `agent_framework.foundry`,
+which targets a different Azure AI Foundry *Agent Service* project shape the shared
+`.env` isn't configured for. **Auth convention corrected:** this file originally said
+`az login`/`DefaultAzureCredential`, but the actual shared root `.env` has a static
+`AZURE_OPENAI_API_KEY` that every sibling `Dummy/Pre6/dummy*.py` script already
+authenticates with directly — matched that established convention instead (see
+`src/llm.py`, `.env.example`, updated auth section above).
+- [x] `evaluate_control` ×4 (`src/nodes/evaluate.py`): replaced the heuristics with an
+      `Agent` call per control using `ControlSpec.evaluation_prompt`, structured
+      output into a local `ControlJudgment` model (narrower than `Finding` — no
+      `control_id`, since that's already known), then mapped into `Finding`. A failed
+      or malformed call degrades to `NEEDS_REVIEW`/confidence `0.0` rather than
+      crashing the node — one control's model hiccup routes to human review instead
+      of failing the whole run.
+- [x] **Correction (user-caught, same day):** the first cut of `_judge` passed *all
+      three* raw artifact files into every control's prompt, regardless of
+      relevance — not a fan-out bug (4 separate `EvaluateControlExecutor` instances
+      already made 4 independent `agent.run()` calls, confirmed via the event stream
+      showing separate `executor_invoked`/`executor_completed` pairs per control),
+      but noise in what each individual call saw. Added `ControlSpec.relevant_artifacts`
+      (`src/models.py`) — e.g. `rto_documented`/`rollback_path` -> `runbook_markdown`
+      only, `failover_test_recent` -> `failover_log` only, `contacts_current` ->
+      `config` only — and scoped each prompt accordingly. Re-verified with a real call
+      (`contacts_current` against `svc-gamma`: correctly saw only `config.json`,
+      correctly FAILed on the `"TBD"`/empty-field placeholders) and a full end-to-end
+      `svc-gamma` run; all 4 structural tests still pass unchanged.
+- [x] `write_report` (`src/nodes/report.py`): kept the findings table deterministic
+      (facts computed upstream — an agent restating them risks hallucinating a
+      different number, a real correctness problem for something meant to double as
+      audit evidence) and used an `Agent` only for a short narrative summary above
+      it — a legitimate, low-risk use given prose quality is an explicit non-goal.
+      Falls back to a fixed one-line message if the call fails.
+- [x] Verified against a real Azure OpenAI endpoint, not mocked: ran a single
+      `_judge()` call directly (sensible PASS + rationale for `rto_documented` on
+      `svc-alpha`), then the full graph end-to-end for both `svc-alpha` (mixed
+      findings, correctly routed to `human_review` on a real NEEDS_REVIEW from the
+      model, resolved, reached `write_report`) and `svc-beta` (all real PASS, skipped
+      review, coherent narrative summary).
+- [x] Re-ran `tests/test_graph.py` (all 4 acceptance tests) after the swap — all still
+      pass, unchanged. This is the actual proof of the type-safety claim made in
+      Phase 2's discussion: swapping two nodes' internals for a live external API
+      required zero changes to the graph, edges, or any acceptance test.
+- [x] Discussed: checkpoint timing changes the *cost* of a kill, not just the *state*.
+      Phase 4's kill test hit `human_review` blocked on local `input()` — free to
+      re-run. A kill mid-`evaluate_control` now means killing a process that may be
+      mid-flight on a real, billed Azure OpenAI call: since checkpoints only commit
+      after a full superstep (confirmed in Phase 4), that call's result — and its
+      cost — isn't persisted, so `--resume` re-runs the evaluator and pays for the
+      call again. Not a correctness bug (the framework's checkpoint/resume behavior
+      is unchanged), but a real operational cost that didn't exist with the
+      rule-based stand-in and would matter at production scale. No mitigation
+      implemented — flagging it is the point here, and building idempotency/dedup
+      around a paid call is explicitly beyond this project's non-goals.
+- [x] `ingest` stays deterministic/no-LLM per the brief — not in scope for this swap
       (see separate discussion on screenshot-based ingestion as a possible future
       extension, not part of this phase).
 

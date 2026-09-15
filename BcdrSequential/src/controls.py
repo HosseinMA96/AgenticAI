@@ -17,6 +17,7 @@ CONTROLS: tuple[ControlSpec, ...] = (
             "value with units is present; FAIL if absent; NEEDS_REVIEW if "
             "mentioned but ambiguous or contradictory."
         ),
+        relevant_artifacts=("runbook_markdown",),
     ),
     ControlSpec(
         control_id="rollback_path",
@@ -27,6 +28,7 @@ CONTROLS: tuple[ControlSpec, ...] = (
             "if clear steps exist; FAIL if no rollback section exists; "
             "NEEDS_REVIEW if present but incomplete or unclear."
         ),
+        relevant_artifacts=("runbook_markdown",),
     ),
     ControlSpec(
         control_id="failover_test_recent",
@@ -37,6 +39,7 @@ CONTROLS: tuple[ControlSpec, ...] = (
             "within window; FAIL if overdue or no successful test found; "
             "NEEDS_REVIEW if the log is ambiguous about outcome or date."
         ),
+        relevant_artifacts=("failover_log",),
     ),
     ControlSpec(
         control_id="contacts_current",
@@ -47,5 +50,6 @@ CONTROLS: tuple[ControlSpec, ...] = (
             "placeholder values). PASS if complete; FAIL if placeholders or "
             "empty entries are present; NEEDS_REVIEW if partially filled."
         ),
+        relevant_artifacts=("config",),
     ),
 )

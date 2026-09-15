@@ -29,10 +29,16 @@ The six concepts that must appear in the final code:
 ## Stack
 
 - Python, Microsoft Agent Framework (`agent-framework`)
-- Azure OpenAI via Microsoft Foundry — use `az login` / `DefaultAzureCredential`, not
-  committed keys
+- Azure OpenAI via Microsoft Foundry, using `agent_framework.openai.OpenAIChatClient`
+  (its `azure_endpoint=`/`api_key=` params — not `agent_framework.foundry`, which is
+  for a different Azure AI Foundry *Agent Service* project shape). **Corrected in
+  Phase 6:** originally called for `az login`/`DefaultAzureCredential` here, but the
+  actual shared `.env` already has a static `AZURE_OPENAI_API_KEY`, and every sibling
+  `Dummy/Pre6/dummy*.py` script authenticates with it directly — matched that
+  established convention instead of fighting it. See `src/llm.py`.
 - Shared root `.env` per the parent `Stack of Agents/CLAUDE.md` conventions — this
-  experiment loads `../.env` via relative path; do not duplicate credentials here
+  experiment loads `../.env` via relative path; do not duplicate credentials here. Keys
+  actually used: `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY` (see `.env.example`).
 - OpenTelemetry → Application Insights for observability; framework's DevUI for
   visualizing/debugging the graph
 

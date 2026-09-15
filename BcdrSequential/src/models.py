@@ -43,6 +43,10 @@ class ControlSpec(StrictModel):
     control_id: str
     description: str
     evaluation_prompt: str
+    relevant_artifacts: tuple[str, ...]
+    """Which ArtifactSet field(s) this control's evaluation actually needs —
+    e.g. ("runbook_markdown",). Scopes each evaluate_control call's prompt
+    to only relevant evidence instead of the full bundle every time."""
 
 
 class Finding(StrictModel):

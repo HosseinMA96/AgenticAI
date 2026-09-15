@@ -1,39 +1,64 @@
 """evaluate_control node.
 
-Decision (Phase 2, discussed before coding): implemented as a deterministic
-rule-based evaluator for now, not an LLM call. Reasons:
-  1. The M1/M2 acceptance tests are about graph *structure* (type-safety at
-     build time, fan-out concurrency, conditional routing) — they don't
-     require the evaluator's judgment to come from a model.
-  2. It keeps the graph runnable end-to-end offline, without `az login` or
-     Foundry deployment, while the wiring is still being shaken out.
-  3. Swapping this executor's internals for an Azure OpenAI-backed ChatAgent
-     later is a localized change — the graph, types, and edges don't change,
-     which is itself a demonstration of why type-safe steps are useful.
-The brief's non-goals explicitly exclude report/prompt quality, so a
-heuristic standing in for the "agent" kind is an acceptable simplification
-for this learning project.
+Phase 6 (required swap, decided 2026-09-14): the Phase 2 rule-based
+heuristics are replaced with a real Azure OpenAI call per control, using
+`agent_framework.Agent` + structured output (`response_format`) so the
+model's judgment is constrained to a valid `ControlJudgment` — no free-text
+parsing. The old heuristics are gone from this file (recoverable from git
+history if ever needed); nothing in graph.py, models.py, or any other node
+changed to make this swap, which is the actual proof of the type-safety
+claim made back in Phase 2: the contract was `ArtifactSet -> Finding`
+either way.
 
 One executor instance is constructed per ControlSpec (see graph.py) so the
 same class fans out across all four controls in Phase 3.
+
+Failure handling (discussed, Phase 6): a malformed structured response or a
+client-side error (timeout, content filter, etc.) does not crash the node —
+it degrades to a NEEDS_REVIEW Finding with confidence 0.0, so one control's
+model hiccup routes to human_review instead of failing the whole run. No
+retry logic beyond whatever the framework/client already does by default
+(explicit non-goal per the brief).
+
+Correction (caught in review, same day): the first cut of `_judge` stuffed
+*all three* raw artifact files into every control's prompt regardless of
+relevance — not a fan-out bug (each control still gets its own independent
+`agent.run()` call, confirmed via the event stream showing 4 separate
+`executor_invoked`/`executor_completed` pairs), but unnecessary noise in
+what each individual call actually sees. `ControlSpec.relevant_artifacts`
+now scopes each prompt to only the artifact(s) that control needs.
 """
 
-import re
 from datetime import UTC, datetime
 from typing import Any
 
-from agent_framework import Executor, WorkflowContext, handler
+from agent_framework import Agent, Executor, WorkflowContext, handler
+from pydantic import Field
 
 from src.controls import CONTROLS
-from src.models import ArtifactSet, ControlSpec, Finding, FindingStatus
+from src.llm import get_chat_client
+from src.models import ArtifactSet, ControlSpec, Finding, FindingStatus, StrictModel
 
-_TIMESTAMP_RE = re.compile(r"\[(\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2}Z\]")
-_RESULT_RE = re.compile(r"result=(\w+)")
 _CONTROLS_BY_ID = {control.control_id: control for control in CONTROLS}
+_ARTIFACT_LABELS = {
+    "runbook_markdown": "runbook.md",
+    "failover_log": "failover-test.log",
+    "config": "config.json",
+}
+
+
+class ControlJudgment(StrictModel):
+    """The LLM's structured output shape — narrower than Finding, since
+    control_id is already known and doesn't need to come from the model."""
+
+    status: FindingStatus
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence_ref: str
+    rationale: str
 
 
 class EvaluateControlExecutor(Executor):
-    """Evaluates one ControlSpec against an ArtifactSet, deterministically."""
+    """Evaluates one ControlSpec against an ArtifactSet via an Azure OpenAI call."""
 
     def __init__(self, control: ControlSpec, id: str):
         super().__init__(id=id)
@@ -56,126 +81,45 @@ class EvaluateControlExecutor(Executor):
 
     @handler
     async def evaluate(self, artifacts: ArtifactSet, ctx: WorkflowContext[Finding]) -> None:
-        method = getattr(self, f"_evaluate_{self._control.control_id}", None)
-        if method is None:
-            raise ValueError(f"No evaluator implemented for control {self._control.control_id!r}")
-        finding = method(artifacts)
+        try:
+            judgment = await self._judge(artifacts)
+        except Exception as exc:  # noqa: BLE001 - deliberate: any model/client failure degrades gracefully
+            finding = Finding(
+                control_id=self._control.control_id,
+                status=FindingStatus.NEEDS_REVIEW,
+                evidence_ref=f"evaluate_control agent call failed: {type(exc).__name__}: {exc}",
+                confidence=0.0,
+            )
+        else:
+            finding = Finding(
+                control_id=self._control.control_id,
+                status=judgment.status,
+                evidence_ref=judgment.evidence_ref,
+                confidence=judgment.confidence,
+            )
         await ctx.send_message(finding)
 
-    def _evaluate_rto_documented(self, artifacts: ArtifactSet) -> Finding:
-        runbook = artifacts.runbook_markdown
-        match = re.search(r"\*\*RTO:\*\*\s*(.+)", runbook)
-        if match and re.search(r"\d", match.group(1)):
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.PASS,
-                evidence_ref="runbook.md#Recovery Objectives",
-                confidence=0.95,
-            )
-        if "RTO" in runbook.upper():
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.NEEDS_REVIEW,
-                evidence_ref="runbook.md",
-                confidence=0.5,
-            )
-        return Finding(
-            control_id=self._control.control_id,
-            status=FindingStatus.FAIL,
-            evidence_ref="runbook.md",
-            confidence=0.9,
+    async def _judge(self, artifacts: ArtifactSet) -> ControlJudgment:
+        agent = Agent(
+            client=get_chat_client(),
+            name=f"evaluate_{self._control.control_id}",
+            instructions=(
+                "You are a BCDR compliance evidence reviewer. Evaluate exactly one "
+                "control against the provided artifacts and return a structured "
+                "judgment. Be conservative: prefer NEEDS_REVIEW over guessing when "
+                "the evidence is ambiguous or incomplete."
+            ),
         )
-
-    def _evaluate_rollback_path(self, artifacts: ArtifactSet) -> Finding:
-        runbook = artifacts.runbook_markdown
-        section_match = re.search(r"## Rollback\n(.+?)(\n##|\Z)", runbook, re.DOTALL)
-        if not section_match:
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.FAIL,
-                evidence_ref="runbook.md",
-                confidence=0.9,
-            )
-        body = section_match.group(1).strip()
-        has_numbered_steps = bool(re.search(r"^\d+\.", body, re.MULTILINE))
-        vague_markers = ("no rollback", "no scripted path", "not been written", "TBD")
-        if any(marker.lower() in body.lower() for marker in vague_markers) or not has_numbered_steps:
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.NEEDS_REVIEW,
-                evidence_ref="runbook.md#Rollback",
-                confidence=0.55,
-            )
-        return Finding(
-            control_id=self._control.control_id,
-            status=FindingStatus.PASS,
-            evidence_ref="runbook.md#Rollback",
-            confidence=0.9,
+        evidence = "\n\n".join(
+            f"--- {_ARTIFACT_LABELS[field]} ---\n{getattr(artifacts, field)}"
+            for field in self._control.relevant_artifacts
         )
-
-    def _evaluate_failover_test_recent(self, artifacts: ArtifactSet) -> Finding:
-        log = artifacts.failover_log
-        entries = list(zip(_TIMESTAMP_RE.findall(log), _RESULT_RE.findall(log), strict=False))
-        if not entries:
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.NEEDS_REVIEW,
-                evidence_ref="failover-test.log",
-                confidence=0.4,
-            )
-        latest_date_str, latest_result = entries[0]
-        latest_date = datetime.strptime(latest_date_str, "%Y-%m-%d").replace(tzinfo=UTC)
-        age_days = (datetime.now(UTC) - latest_date).days
-
-        # Overdue is disqualifying regardless of outcome — an old partial
-        # success still means there's no *recent* passing test on record.
-        if age_days > 365:
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.FAIL,
-                evidence_ref="failover-test.log",
-                confidence=0.85,
-            )
-        if latest_result == "SUCCESS":
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.PASS,
-                evidence_ref="failover-test.log",
-                confidence=0.95,
-            )
-        return Finding(
-            control_id=self._control.control_id,
-            status=FindingStatus.NEEDS_REVIEW,
-            evidence_ref="failover-test.log",
-            confidence=0.5,
+        prompt = (
+            f"Today's date is {datetime.now(UTC).date().isoformat()}.\n\n"
+            f"Control: {self._control.control_id}\n"
+            f"Control description: {self._control.description}\n"
+            f"Evaluation instructions: {self._control.evaluation_prompt}\n\n"
+            f"{evidence}\n"
         )
-
-    def _evaluate_contacts_current(self, artifacts: ArtifactSet) -> Finding:
-        contacts = artifacts.config.get("escalation_contacts", [])
-        if not isinstance(contacts, list) or not contacts:
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.FAIL,
-                evidence_ref="config.json#escalation_contacts",
-                confidence=0.9,
-            )
-        placeholder_markers = ("", "tbd")
-        has_placeholder = any(
-            str(entry.get("name", "")).strip().lower() in placeholder_markers
-            or str(entry.get("channel", "")).strip().lower() in placeholder_markers
-            for entry in contacts
-            if isinstance(entry, dict)
-        )
-        if has_placeholder:
-            return Finding(
-                control_id=self._control.control_id,
-                status=FindingStatus.FAIL,
-                evidence_ref="config.json#escalation_contacts",
-                confidence=0.85,
-            )
-        return Finding(
-            control_id=self._control.control_id,
-            status=FindingStatus.PASS,
-            evidence_ref="config.json#escalation_contacts",
-            confidence=0.9,
-        )
+        response = await agent.run(prompt, options={"response_format": ControlJudgment})
+        return response.value
