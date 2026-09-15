@@ -7,7 +7,7 @@ from pathlib import Path
 
 from agent_framework import Executor, WorkflowContext, handler
 
-from src.models import ArtifactSet
+from src.models import ArtifactSet, RunRequest
 
 FIXTURES_ROOT = Path(__file__).resolve().parent.parent.parent / "fixtures"
 
@@ -16,21 +16,22 @@ class IngestExecutor(Executor):
     """Reads fixtures/<service_id>/{failover-test.log, runbook.md, config.json}."""
 
     @handler
-    async def ingest(self, service_id: str, ctx: WorkflowContext[ArtifactSet]) -> None:
-        service_dir = FIXTURES_ROOT / service_id
+    async def ingest(self, request: RunRequest, ctx: WorkflowContext[ArtifactSet]) -> None:
+        service_dir = FIXTURES_ROOT / request.service_id
         if not service_dir.is_dir():
             raise FileNotFoundError(
-                f"No fixture bundle for service_id={service_id!r} at {service_dir}"
+                f"No fixture bundle for service_id={request.service_id!r} at {service_dir}"
             )
 
         failover_log = (service_dir / "failover-test.log").read_text()
         runbook_markdown = (service_dir / "runbook.md").read_text()
         config = json.loads((service_dir / "config.json").read_text())
 
-        ctx.set_state("service_id", service_id)
+        ctx.set_state("service_id", request.service_id)
+        ctx.set_state("confidence_threshold", request.confidence_threshold)
 
         artifacts = ArtifactSet(
-            service_id=service_id,
+            service_id=request.service_id,
             failover_log=failover_log,
             runbook_markdown=runbook_markdown,
             config=config,

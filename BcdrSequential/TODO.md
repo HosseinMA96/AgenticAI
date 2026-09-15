@@ -72,18 +72,39 @@ streaming, serialization, checkpoint/resume).
       an overdue test fails regardless of its last recorded outcome, matching the
       intended fixture story.
 
-## Phase 3 — Parallel + conditional (M2)
-- [ ] Fan out to all 4 `evaluate_control` executors; fan-in at `aggregate` (waits for
-      all four); compute coverage stats.
-- [ ] Conditional edge: route to `human_review` if any `Finding` is NEEDS_REVIEW or
-      confidence < threshold (threshold in shared state, not hardcoded); else straight
-      to `write_report`.
-- [ ] `human_review`: surface flagged findings, pause for input, merge decision into
-      state.
-- [ ] **Acceptance test:** changing the threshold in state (not code) changes the
-      routed branch; event stream shows all 4 evaluators running concurrently.
-- [ ] Discuss: fan-in readiness vs. conditional-edge readiness — why they're different
-      synchronization problems (this feeds directly into `NOTES.md` Q1).
+## Phase 3 — Parallel + conditional (M2) ✅
+- [x] Fanned out `ingest` to all 4 `EvaluateControlExecutor` instances via
+      `add_fan_out_edges` (broadcasts the same `ArtifactSet` concurrently); fan-in at
+      `aggregate` via `add_fan_in_edges` (barrier — only runs once all 4 complete;
+      framework requires >=2 sources for a fan-in group, confirming the Phase 2 note
+      that a single-source "fan-in of one" isn't legal). `aggregate`'s handler
+      signature changed from `Finding` to `list[Finding]` as flagged in Phase 2.
+- [x] Conditional edge: `add_edge(aggregate, human_review, condition=...)` /
+      `add_edge(aggregate, write_report, condition=...)` routing on
+      `FindingSet.needs_review`. Threshold is no longer hardcoded — added a typed
+      `RunRequest{service_id, confidence_threshold}` as the workflow's actual input
+      type (replacing the bare `str`), which `ingest` pushes into shared state via
+      `ctx.set_state`; `aggregate` and `human_review` both read it back via
+      `ctx.get_state`. Decided against a hidden CLI side-channel specifically so the
+      threshold stays inside the type-safety story.
+- [x] `human_review`: decided (discussed before coding) on a blocking `input()` prompt
+      in the executor's own handler over the framework's `request_info` mechanism —
+      simpler, one fewer framework concept to learn this week, and a better fit for
+      Phase 4's `kill -9` test (killing a process blocked on stdin mid-superstep is
+      exactly what checkpoint/resume needs to prove out). Resolved findings are new
+      `Finding` instances via `model_copy(update=...)` since `Finding` is frozen;
+      decisions recorded as `HumanReviewDecision` in state for an audit trail.
+- [x] **Acceptance test passing:** `--threshold 0.6` on `svc-beta` (all findings
+      confidence >=0.9) skips `human_review` entirely (0 prompts); `--threshold 0.99`
+      on the same fixture, same code, routes all 4 findings through `human_review` (4
+      prompts) — threshold change alone flips the branch. Event stream confirms all 4
+      evaluators' `executor_invoked` land in one superstep before `aggregate` starts.
+- [x] Discussed: fan-in readiness is "have all N sources delivered for this
+      superstep?" — a structural/cardinality question the runtime tracks per edge
+      group. Conditional-edge readiness is "does this one message's *content* satisfy
+      the predicate?" — evaluated per-message, no waiting on other sources. Fan-in
+      can't fire early; a conditional edge doesn't wait at all. (Captured for
+      `NOTES.md` Q1.)
 
 ## Phase 4 — Durability (M3)
 - [ ] Checkpoint to disk after each step/superstep.

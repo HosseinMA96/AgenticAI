@@ -19,6 +19,15 @@ class FindingStatus(StrEnum):
     NEEDS_REVIEW = "NEEDS_REVIEW"
 
 
+class RunRequest(StrictModel):
+    """Initial input to the workflow — carries the confidence threshold as
+    typed data rather than a hidden CLI side-channel, so `ingest` can push it
+    into shared state for the conditional edge to read later."""
+
+    service_id: str
+    confidence_threshold: float = Field(ge=0.0, le=1.0)
+
+
 class ArtifactSet(StrictModel):
     """Parsed output of `ingest` — the raw synthetic bundle, structured."""
 

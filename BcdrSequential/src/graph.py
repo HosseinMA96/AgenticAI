@@ -1,14 +1,22 @@
 """Builds and validates the compliance evidence workflow.
 
-M1 (this file, Phase 2): a sequential spine —
-    ingest -> evaluate_control(rto_documented) -> aggregate -> write_report
-wired one control at a time with plain edges. Phase 3 rewires the middle of
-this graph: four `EvaluateControlExecutor` instances fan out from `ingest`
-and fan in at `aggregate` (which then takes `list[Finding]`), plus a
-conditional edge out of `aggregate` toward `human_review` or `write_report`.
-Each node's contract is a Pydantic model from models.py, so every rewiring
-is checked for type compatibility at `.build()` time rather than discovered
-at runtime.
+Phase 3 (M2): full graph —
+
+              +-> evaluate(rto_documented)      -+
+              |                                  |
+    ingest ---+-> evaluate(rollback_path)       -+--> aggregate --[conditional]--+--> human_review --+
+    (typed    |                                  |         |                    |                    |
+    RunRequest+-> evaluate(failover_test_recent)-+         | needs_review=False |                    |
+    in)       |                                  |         v                    +--------------------+
+              +-> evaluate(contacts_current)    -+   write_report <-------------------------------------+
+
+`add_fan_out_edges` broadcasts ingest's single ArtifactSet to all four
+evaluators concurrently; `add_fan_in_edges` makes `aggregate` a barrier that
+only runs once all four have completed for that superstep. The conditional
+edges route on `FindingSet.needs_review`, which `aggregate` computes from a
+threshold read out of shared state (set by `ingest` from the initial
+`RunRequest`) rather than a hardcoded constant — so changing the threshold
+at run time changes the routed branch without touching this file.
 """
 
 from agent_framework import WorkflowBuilder
@@ -16,20 +24,27 @@ from agent_framework import WorkflowBuilder
 from src.controls import CONTROLS
 from src.nodes.aggregate import AggregateExecutor
 from src.nodes.evaluate import EvaluateControlExecutor
+from src.nodes.human_review import HumanReviewExecutor
 from src.nodes.ingest import IngestExecutor
 from src.nodes.report import WriteReportExecutor
 
 
 def build_graph():
     ingest = IngestExecutor(id="ingest")
-    evaluate_rto = EvaluateControlExecutor(control=CONTROLS[0], id="evaluate_rto_documented")
+    evaluators = [
+        EvaluateControlExecutor(control=control, id=f"evaluate_{control.control_id}")
+        for control in CONTROLS
+    ]
     aggregate = AggregateExecutor(id="aggregate")
+    human_review = HumanReviewExecutor(id="human_review")
     write_report = WriteReportExecutor(id="write_report")
 
     return (
         WorkflowBuilder(start_executor=ingest)
-        .add_edge(ingest, evaluate_rto)
-        .add_edge(evaluate_rto, aggregate)
-        .add_edge(aggregate, write_report)
+        .add_fan_out_edges(ingest, evaluators)
+        .add_fan_in_edges(evaluators, aggregate)
+        .add_edge(aggregate, human_review, condition=lambda fs: fs.needs_review)
+        .add_edge(aggregate, write_report, condition=lambda fs: not fs.needs_review)
+        .add_edge(human_review, write_report)
         .build()
     )
