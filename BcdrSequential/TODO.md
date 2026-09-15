@@ -159,12 +159,31 @@ streaming, serialization, checkpoint/resume).
       (`CosmosCheckpointStorage`, `agent-framework-azure-cosmos`) — the framework's
       actual distributed backend, not Blob Storage as the brief assumed.
 
-## Phase 5 — Required experiment + NOTES.md
-- [ ] Build the deliberately lopsided fan-out (fast 2–3-node chain vs. one slow node);
-      observe in the event stream that the fast chain stalls at the superstep barrier.
-- [ ] Write `NOTES.md` answering the 3 brief questions (fan-in vs. conditional
-      readiness; resuming a changed graph; when to prefer an autonomous orchestrator
-      over a deterministic workflow).
+## Phase 5 — Required experiment + NOTES.md ✅
+- [x] Built the lopsided fan-out as a standalone demo graph, `src/experiments/
+      lopsided_fanout.py` (discussed and decided: separate from the real evidence
+      workflow, so an artificial `asyncio.sleep()` never has to live in production
+      node code). `start` fans out to a 3-node fast chain (`fast_a → fast_b → fast_c`)
+      and one `slow` node (3s sleep); both fan back in at `finish`.
+      **Result was stronger than expected — verified by running it, not assumed:**
+      `fast_a` completes at `0.05s`, but `fast_b` doesn't even *start* until `3.11s`,
+      right after `slow` finishes. It's not just that the final fan-in waits — the
+      *entire* workflow advances in lockstep supersteps (BSP-style), so the fast
+      chain is frozen after its first hop, not just blocked at the finish barrier.
+      Full run log and the implication for this project's real evaluator nodes
+      captured in `NOTES.md`.
+- [x] Wrote `NOTES.md` answering all 3 brief questions, grounded in what was actually
+      verified while building Phases 3-4 rather than general theory: Q1 (fan-in
+      readiness = structural/cardinality question asked before content is seen;
+      conditional-edge readiness = content question asked the instant one message
+      arrives), Q2 (the framework already detects a changed graph via
+      `graph_signature_hash`, verified by triggering the actual
+      `WorkflowCheckpointException`; contrasted against the *silent* checkpoint
+      allow-list bug from Phase 4, which is a related but distinct failure mode that
+      does NOT fail loudly by default), Q3 (deterministic workflow fits when the
+      graph's shape is knowable before seeing any input — true of every milestone's
+      acceptance test in this project; autonomous orchestrator fits when the number/
+      order of steps depends on what's discovered at runtime).
 
 ## Phase 6 — Swap in real agents (required, not stretch)
 Decided 2026-09-14: the rule-based `evaluate_control`/`write_report` stand-ins (see
