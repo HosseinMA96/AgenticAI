@@ -106,14 +106,55 @@ streaming, serialization, checkpoint/resume).
       can't fire early; a conditional edge doesn't wait at all. (Captured for
       `NOTES.md` Q1.)
 
-## Phase 4 — Durability (M3)
-- [ ] Checkpoint to disk after each step/superstep.
-- [ ] Graph serialization: dump to JSON, reconstruct, confirm it still runs.
-- [ ] `--resume <checkpoint-id>` CLI path.
-- [ ] **Acceptance test:** `kill -9` mid-fan-out, then `--resume` completes without
-      re-running already-finished nodes.
-- [ ] Discuss: what checkpoint granularity costs you (superstep vs. per-node), and why
-      resuming against a changed graph is dangerous (feeds `NOTES.md` Q2).
+## Phase 4 — Durability (M3) ✅
+- [x] Checkpoint to disk after each superstep, via `FileCheckpointStorage("checkpoints")`
+      passed into `WorkflowBuilder(checkpoint_storage=...)`. Confirmed against the
+      framework's own code comment: `"The runner only checkpoints after each
+      superstep"` — not per-node, which matters for what "already-finished" means
+      below.
+      **Real gotcha found and fixed:** checkpoints are pickled, and the framework
+      refuses to deserialize any type not explicitly allow-listed (a real guard
+      against arbitrary code execution from a tampered checkpoint file). Every
+      Pydantic model that crosses an edge — including the `FindingStatus` enum,
+      easy to miss — must be listed in `ALLOWED_CHECKPOINT_TYPES` (`src/run.py`).
+      Missing one doesn't hard-fail: `get_latest()` silently falls back to an older
+      *readable* checkpoint and logs a warning to stderr, which on first pass caused
+      already-finished evaluator nodes to incorrectly re-run on resume. Caught by
+      actually testing the resume, not by reasoning about it — the acceptance test
+      below failed on the first attempt for exactly this reason.
+- [x] Graph serialization: `Workflow.to_json()` produces a real topology dump, but
+      **`Workflow.from_json()` has no working path back to a runnable `Workflow`** —
+      verified directly (`Workflow.__init__() got an unexpected keyword argument
+      'id'`), not assumed. Discussed and decided: "reconstruct" for concept 5 means
+      parse the JSON back into a dict and assert it structurally matches the live
+      graph (executor ids, types, edge count, start executor) — see
+      `tests/test_graph.py::test_graph_json_dump_matches_live_structure`. Actually
+      *running* after a restart is what checkpoint/resume (concept 6) covers, and
+      that's real and tested below. Also added `EvaluateControlExecutor.to_dict`/
+      `from_dict` overrides (the base `Executor.to_dict()` only captures `{id, type}`,
+      not the `control_id` needed to rebuild it) — correct and tested on its own
+      (`test_evaluate_control_executor_round_trips_via_dict`), even though it wasn't
+      sufficient by itself to fix the bigger `Workflow`-level gap.
+- [x] `--resume <checkpoint-id>` CLI path; `--export-graph <path>` for the topology dump.
+- [x] **Acceptance test passing (verified manually, not automated — see
+      `tests/test_graph.py` docstring for why):** launched `svc-alpha` with a FIFO as
+      stdin so `human_review`'s `input()` call genuinely blocks (confirmed via `ps`
+      showing sleep state `Sl`), `kill -9`'d it mid-prompt, confirmed 4 checkpoints on
+      disk (through the end of `aggregate`'s superstep — `human_review`'s superstep
+      never completed, so per the checkpoint-granularity fact above it wasn't
+      captured). `--resume`'d from the latest checkpoint: event stream showed only
+      `human_review` and `write_report` re-invoked — `ingest` and all 4 evaluators did
+      not re-run. `human_review` re-running is correct, not a bug: it never finished.
+- [x] Discussed: checkpoint granularity is per-superstep, not per-node — killing
+      mid-superstep loses that whole step's progress, not just the one node that was
+      running (a real cost, traded for simplicity: no partial-superstep bookkeeping).
+      Resuming against a changed graph is dangerous because the persisted messages/
+      state reference executor ids and edge shapes that may no longer exist or mean
+      something different — **the framework already detects this itself** via a
+      `graph_signature_hash` stored in every checkpoint; verified by building a
+      deliberately different graph under the same workflow name and confirming
+      `WorkflowCheckpointException: Workflow graph has changed since the checkpoint
+      was created` fires on resume. (Both captured for `NOTES.md` Q2.)
 - [ ] Stretch, optional: move checkpoint store to Azure Cosmos DB
       (`CosmosCheckpointStorage`, `agent-framework-azure-cosmos`) — the framework's
       actual distributed backend, not Blob Storage as the brief assumed.

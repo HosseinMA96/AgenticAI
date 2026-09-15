@@ -10,5 +10,8 @@ dependencies = [
     "azure-identity",
 ]
 
+[dependency-groups]
+dev = ["pytest", "pytest-asyncio"]
+
 [tool.uv]
 package = false

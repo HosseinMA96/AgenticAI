@@ -20,13 +20,16 @@ same class fans out across all four controls in Phase 3.
 
 import re
 from datetime import UTC, datetime
+from typing import Any
 
 from agent_framework import Executor, WorkflowContext, handler
 
+from src.controls import CONTROLS
 from src.models import ArtifactSet, ControlSpec, Finding, FindingStatus
 
 _TIMESTAMP_RE = re.compile(r"\[(\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2}Z\]")
 _RESULT_RE = re.compile(r"result=(\w+)")
+_CONTROLS_BY_ID = {control.control_id: control for control in CONTROLS}
 
 
 class EvaluateControlExecutor(Executor):
@@ -35,6 +38,21 @@ class EvaluateControlExecutor(Executor):
     def __init__(self, control: ControlSpec, id: str):
         super().__init__(id=id)
         self._control = control
+
+    def to_dict(self) -> dict[str, Any]:
+        """Adds control_id so a serialized graph can fully reconstruct this
+        executor — the base Executor.to_dict() only captures {id, type},
+        which is enough for the other four nodes (plain id-only
+        constructors) but not this one, since `control` isn't otherwise
+        recoverable from graph topology alone."""
+        data = super().to_dict()
+        data["control_id"] = self._control.control_id
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "EvaluateControlExecutor":
+        control = _CONTROLS_BY_ID[data["control_id"]]
+        return cls(control=control, id=data["id"])
 
     @handler
     async def evaluate(self, artifacts: ArtifactSet, ctx: WorkflowContext[Finding]) -> None:
