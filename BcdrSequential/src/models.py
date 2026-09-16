@@ -49,6 +49,15 @@ class ControlSpec(StrictModel):
     to only relevant evidence instead of the full bundle every time."""
 
 
+class NotesSource(StrEnum):
+    AGENT = "AGENT"
+    HUMAN = "HUMAN"
+    SYSTEM = "SYSTEM"
+    """SYSTEM covers evaluate_control's own fallback path (agent/tool call
+    failed), so a NEEDS_REVIEW finding's notes clearly aren't a real
+    judgment from either the model or a person."""
+
+
 class Finding(StrictModel):
     """Output of one `evaluate_control` node."""
 
@@ -56,6 +65,11 @@ class Finding(StrictModel):
     status: FindingStatus
     evidence_ref: str
     confidence: float = Field(ge=0.0, le=1.0)
+    notes: str
+    notes_source: NotesSource
+    """Why this decision was made. AGENT = the model's own rationale;
+    HUMAN = overwritten by a human_review reviewer note, replacing whatever
+    rationale was there before; SYSTEM = evaluate_control's error fallback."""
 
 
 class FindingSet(StrictModel):

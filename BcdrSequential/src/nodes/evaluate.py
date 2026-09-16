@@ -37,7 +37,7 @@ from pydantic import Field
 
 from src.controls import CONTROLS
 from src.llm import get_chat_client
-from src.models import ArtifactSet, ControlSpec, Finding, FindingStatus, StrictModel
+from src.models import ArtifactSet, ControlSpec, Finding, FindingStatus, NotesSource, StrictModel
 
 _CONTROLS_BY_ID = {control.control_id: control for control in CONTROLS}
 _ARTIFACT_LABELS = {
@@ -87,8 +87,10 @@ class EvaluateControlExecutor(Executor):
             finding = Finding(
                 control_id=self._control.control_id,
                 status=FindingStatus.NEEDS_REVIEW,
-                evidence_ref=f"evaluate_control agent call failed: {type(exc).__name__}: {exc}",
+                evidence_ref="n/a (evaluation failed)",
                 confidence=0.0,
+                notes=f"evaluate_control agent call failed: {type(exc).__name__}: {exc}",
+                notes_source=NotesSource.SYSTEM,
             )
         else:
             finding = Finding(
@@ -96,6 +98,8 @@ class EvaluateControlExecutor(Executor):
                 status=judgment.status,
                 evidence_ref=judgment.evidence_ref,
                 confidence=judgment.confidence,
+                notes=judgment.rationale,
+                notes_source=NotesSource.AGENT,
             )
         await ctx.send_message(finding)
 

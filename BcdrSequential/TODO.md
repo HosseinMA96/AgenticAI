@@ -227,9 +227,43 @@ authenticates with directly — matched that established convention instead (see
 - [x] `write_report` (`src/nodes/report.py`): kept the findings table deterministic
       (facts computed upstream — an agent restating them risks hallucinating a
       different number, a real correctness problem for something meant to double as
-      audit evidence) and used an `Agent` only for a short narrative summary above
-      it — a legitimate, low-risk use given prose quality is an explicit non-goal.
-      Falls back to a fixed one-line message if the call fails.
+      audit evidence); the agent's job is the overall verdict + reason.
+- [x] **Extension (user-proposed, same day):** `write_report`'s agent now calls a real
+      tool — `write_evidence_file(verdict, reason)` — to persist a structured
+      `reports/{service_id}.md` (gitignored, like `checkpoints/`). This is the
+      project's first exercise of actual tool/function-calling, distinct from
+      `response_format` structured output used in `evaluate.py`. Confirmed via a toy
+      weather-tool test first: `Agent(tools=[...])` auto-executes a plain Python
+      function within `agent.run()` — no manual tool-call handling needed. The tool's
+      signature deliberately excludes the per-control findings as arguments (only
+      `verdict`/`reason`) — those are injected via closure from the already-computed
+      `FindingSet`, so the model has no chance to restate (and possibly hallucinate) a
+      fact it didn't need to touch, keeping the same deterministic-facts-vs-agent-
+      judgment split as everywhere else in this project. Falls back to a
+      deterministically-computed verdict (NON_COMPLIANT if any FAIL, else
+      NEEDS_REVIEW if `needs_review`, else COMPLIANT) if the agent call fails or never
+      calls the tool, so a report always exists.
+      Verified against a real endpoint: `svc-gamma` (all FAIL) correctly produced
+      `NON_COMPLIANT` with a grounded reason and a real file on disk matching the
+      workflow's own output exactly; `svc-beta` (all PASS) correctly produced
+      `COMPLIANT`.
+- [x] **Extension (user-proposed, same day): Notes column with source attribution.**
+      Added `Finding.notes` (why the decision was made) and `Finding.notes_source`
+      (`AGENT`/`HUMAN`/`SYSTEM`) to `models.py`. `evaluate.py` now populates `notes`
+      from `ControlJudgment.rationale` (previously computed and silently discarded!)
+      with source `AGENT`, or the failure explanation with source `SYSTEM` on the
+      error-fallback path. `human_review.py` now **replaces** `notes` with the
+      reviewer's own note and flips `notes_source` to `HUMAN` when a finding is
+      overridden — the report should reflect why the *recorded* decision was made,
+      and once a human overrides a finding, that's the human's call, not the model's;
+      the original agent rationale is still shown at the review prompt for context,
+      just not retained afterward. `report.py`'s table gained a `Notes` column
+      rendered as `(Agent|Human|System) <text>`, with pipe/newline sanitization so
+      free-text notes can't corrupt the markdown table structure.
+      Verified against a real endpoint end-to-end on `svc-alpha`: the table correctly
+      showed `(Agent)` with the model's actual rationale for 3 untouched controls, and
+      `(Human)` with the exact reviewer-typed note (not the original agent rationale)
+      for the one control (`rollback_path`) that went through `human_review`.
 - [x] Verified against a real Azure OpenAI endpoint, not mocked: ran a single
       `_judge()` call directly (sensible PASS + rationale for `rto_documented` on
       `svc-alpha`), then the full graph end-to-end for both `svc-alpha` (mixed

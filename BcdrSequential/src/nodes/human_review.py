@@ -14,11 +14,19 @@ Decision (Phase 3, discussed before coding): implemented as a blocking
 
 `Finding` is frozen (Phase 1 decision), so a resolved finding is a new
 `Finding` built via `model_copy(update=...)`, not a mutation.
+
+Extension (same day as the report notes-column addition): a resolved
+finding's `notes` is replaced with the reviewer's own note (`notes_source`
+flips to HUMAN) rather than keeping the original agent rationale — the
+report should show *why the recorded decision was made*, and once a human
+overrides a finding, the recorded decision is theirs, not the model's. The
+original rationale is still shown to the reviewer at the prompt so they
+have context for their own note.
 """
 
 from agent_framework import Executor, WorkflowContext, handler
 
-from src.models import Finding, FindingSet, FindingStatus, HumanReviewDecision
+from src.models import Finding, FindingSet, FindingStatus, HumanReviewDecision, NotesSource
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.6
 
@@ -39,6 +47,7 @@ class HumanReviewExecutor(Executor):
             print(f"\n--- Human review required: {finding.control_id} ---")
             print(f"  status={finding.status.value} confidence={finding.confidence:.2f}")
             print(f"  evidence={finding.evidence_ref}")
+            print(f"  agent notes: {finding.notes}")
             resolved_status_raw = input("  Resolve as PASS/FAIL/NEEDS_REVIEW: ").strip().upper()
             resolved_status = FindingStatus(resolved_status_raw)
             note = input("  Reviewer note: ").strip()
@@ -50,7 +59,14 @@ class HumanReviewExecutor(Executor):
             )
             decisions.append(decision)
             resolved_findings.append(
-                finding.model_copy(update={"status": resolved_status, "confidence": 1.0})
+                finding.model_copy(
+                    update={
+                        "status": resolved_status,
+                        "confidence": 1.0,
+                        "notes": note,
+                        "notes_source": NotesSource.HUMAN,
+                    }
+                )
             )
 
         ctx.set_state("human_review_decisions", decisions)
