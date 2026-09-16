@@ -286,8 +286,7 @@ authenticates with directly — matched that established convention instead (see
       implemented — flagging it is the point here, and building idempotency/dedup
       around a paid call is explicitly beyond this project's non-goals.
 - [x] `ingest` stays deterministic/no-LLM per the brief — not in scope for this swap
-      (see separate discussion on screenshot-based ingestion as a possible future
-      extension, not part of this phase).
+      (screenshot/PDF ingestion followed up on separately in Phase 8).
 
 ## Phase 7 — Wrap-up
 - [x] `python -m src.run --export-graph graph.json` works standalone (verified after
@@ -299,6 +298,67 @@ authenticates with directly — matched that established convention instead (see
 - [ ] Retro discussion: which of the 6 concepts felt most/least justified for this
       problem size, and where this toy version would need to grow up for a real BCDR
       pipeline.
+
+## Phase 8 — Format-agnostic evidence (required, not stretch) ✅
+Decided 2026-09-15: real BCDR evidence isn't always markdown/JSON — screenshots of a
+DR dashboard, a PDF-exported runbook — so `ingest` and `evaluate_control` shouldn't
+assume text. Discussed and decided (see conversation) before coding:
+- **Ingestion mode:** vision input, not OCR/text-pre-extraction — the model looks at
+  the actual screenshot/PDF page, matching how an auditor reviews evidence. Verified
+  against the installed `agent_framework_openai` connector source (`_chat_client.py`)
+  before coding, not assumed: `Content(type="uri", uri=<data: URI>, media_type=...)`
+  maps to an `input_image` block for image media types; the same shape plus
+  `additional_properties={"openai_content_type": "input_file"}` maps to `input_file`
+  for PDFs.
+- **Evidence identity:** kept the existing fixed-role model (`runbook`,
+  `failover_log`, `config`) rather than a per-service manifest file — each role is
+  looked up by a fixed filename *stem* in `fixtures/<service>/` (any extension), and
+  the extension alone decides `EvidenceFormat` (text/image/pdf). Simpler than a
+  manifest, no filename-sniffing brittleness, and `ControlSpec.relevant_artifacts`
+  didn't need to change shape at all — still a tuple of role names.
+- [x] `models.py`: added `EvidenceFormat` enum and `EvidenceItem{role, path, format,
+      text, media_type}`; `ArtifactSet` changed from 3 fixed `str`/`dict` fields to
+      `evidence: dict[str, EvidenceItem]` keyed by role.
+- [x] `ingest.py`: rewritten to find each role's file by stem (`ROLE_STEMS`), classify
+      by extension into TEXT/IMAGE/PDF, and read text eagerly (binary evidence is read
+      from `path` later, at prompt-build time, so it's not carried as base64 through
+      `WorkflowContext`/checkpoints).
+- [x] `evaluate.py`: TEXT evidence still inlines into the prompt string, unchanged.
+      IMAGE/PDF evidence is now attached as a multimodal `Content` item on a `Message`
+      passed to `agent.run([message], ...)` instead of a bare prompt string.
+- [x] `run.py`: added `EvidenceItem`/`EvidenceFormat` to `ALLOWED_CHECKPOINT_TYPES`
+      (nested Pydantic types inside a checkpointed message must be allow-listed too,
+      per the Phase 4 gotcha with `FindingStatus`).
+- [x] Fixtures updated to actually exercise all 3 formats, not just add unused files:
+      `svc-alpha/failover-test.log` -> `failover-test.png` (image), `svc-beta/
+      runbook.md` -> `runbook.pdf` (pdf), `svc-gamma` left as all-text (control case).
+      Same underlying content, so control-evaluation outcomes shouldn't change —
+      only how the evidence reaches the model.
+- [x] Verified structurally (no network call): `ingest` correctly classifies and
+      reads all three services' bundles (`text_len` populated only for TEXT items);
+      `_evidence_to_content` produces the expected `Content(type="uri", ...)` shape
+      for both the PNG and PDF fixture, including `openai_content_type: input_file`
+      for the PDF; `--export-graph` and all 4 `tests/test_graph.py` acceptance tests
+      still pass unchanged (another proof of the type-safety claim — this was a
+      contract change to `ArtifactSet`/`ingest`/`evaluate`, and no edge/graph-shape
+      test broke).
+- [x] Verified against a real Azure OpenAI endpoint (not mocked): ran `_judge()`
+      directly for `svc-alpha`'s `failover_test_recent` against the PNG screenshot,
+      and `svc-beta`'s `rto_documented` against the PDF runbook.
+      **Real bug caught this way, not by structural checks:** the `input_image` path
+      worked first try (correct FAIL, correctly reasoning about both log timestamps
+      from the image). The `input_file` (PDF) path 400'd —
+      `Missing required parameter: 'input[0].content[1]'` — because the OpenAI
+      connector's `input_file` branch (`_chat_client.py`) requires a `filename` in
+      `additional_properties`, which the first cut of `_evidence_to_content` didn't
+      set. Fixed by adding `"filename": Path(item.path).name`; re-verified working.
+      **Separate, real fidelity issue found (not a plumbing bug — flagging, not
+      fixing, per report-quality being a non-goal):** the PDF call returned PASS with
+      confidence 0.95, citing "RTO: 2 minutes" — but `svc-beta`'s actual runbook says
+      RTO 10 minutes / RPO 2 minutes; the model conflated the two adjacent lines when
+      reading the rendered page image, and was confidently wrong. Worth knowing before
+      treating PDF/image evidence review as equivalent in reliability to text evidence
+      review — a real gap between "the plumbing works" and "the judgment is trustworthy."
 
 ## Explicitly cut unless time remains
 - M4 (containerize + Azure Container Apps + cross-replica resume via Cosmos DB
