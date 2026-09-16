@@ -290,7 +290,11 @@ authenticates with directly — matched that established convention instead (see
       extension, not part of this phase).
 
 ## Phase 7 — Wrap-up
-- [ ] `python -m src.run --export-graph graph.json` works standalone.
+- [x] `python -m src.run --export-graph graph.json` works standalone (verified after
+      Phase 6's changes to `evaluate.py`/`report.py`) — no network call, all 8
+      executors present, `control_id` round-trips correctly on the custom
+      `EvaluateControlExecutor`, and `test_graph_json_dump_matches_live_structure`
+      still passes.
 - [ ] README pass: how to run, resume, export; what's simulated vs. real.
 - [ ] Retro discussion: which of the 6 concepts felt most/least justified for this
       problem size, and where this toy version would need to grow up for a real BCDR
