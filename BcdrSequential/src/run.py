@@ -28,6 +28,8 @@ CHECKPOINTS_DIR = "checkpoints"
 ALLOWED_CHECKPOINT_TYPES = [
     "src.models:RunRequest",
     "src.models:ArtifactSet",
+    "src.models:EvidenceItem",
+    "src.models:EvidenceFormat",
     "src.models:Finding",
     "src.models:FindingSet",
     "src.models:FindingStatus",

@@ -27,24 +27,50 @@ relevance — not a fan-out bug (each control still gets its own independent
 `executor_invoked`/`executor_completed` pairs), but unnecessary noise in
 what each individual call actually sees. `ControlSpec.relevant_artifacts`
 now scopes each prompt to only the artifact(s) that control needs.
+
+Phase 8 (format-agnostic evidence): TEXT evidence is still inlined into the
+prompt text, same as before. IMAGE/PDF evidence is instead attached as a
+multimodal `Content` item on the same `Message` — confirmed against the
+installed `agent_framework_openai` connector source
+(`_chat_client.py`): a `Content(type="uri", uri=<data: URI>,
+media_type=...)` maps to an `input_image` block for image media types, and
+the same shape with `additional_properties={"openai_content_type":
+"input_file"}` maps to `input_file` for PDFs. So the model looks at the
+actual screenshot/PDF page rather than a paraphrase of it, with no OCR or
+PDF-text-extraction step needed.
 """
 
+import base64
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
-from agent_framework import Agent, Executor, WorkflowContext, handler
+from agent_framework import Agent, Content, Executor, Message, WorkflowContext, handler
 from pydantic import Field
 
 from src.controls import CONTROLS
 from src.llm import get_chat_client
-from src.models import ArtifactSet, ControlSpec, Finding, FindingStatus, NotesSource, StrictModel
+from src.models import ArtifactSet, ControlSpec, EvidenceFormat, EvidenceItem, Finding, FindingStatus, NotesSource, StrictModel
 
 _CONTROLS_BY_ID = {control.control_id: control for control in CONTROLS}
-_ARTIFACT_LABELS = {
-    "runbook_markdown": "runbook.md",
-    "failover_log": "failover-test.log",
-    "config": "config.json",
-}
+
+
+def _evidence_to_content(item: EvidenceItem) -> Content:
+    """IMAGE/PDF evidence -> a multimodal Content item, read fresh from disk
+    (not carried as bytes on ArtifactSet, to keep checkpoints small)."""
+    data = base64.b64encode(Path(item.path).read_bytes()).decode("ascii")
+    uri = f"data:{item.media_type};base64,{data}"
+    if item.format == EvidenceFormat.PDF:
+        return Content(
+            type="uri",
+            uri=uri,
+            media_type=item.media_type,
+            additional_properties={
+                "openai_content_type": "input_file",
+                "filename": Path(item.path).name,
+            },
+        )
+    return Content(type="uri", uri=uri, media_type=item.media_type)
 
 
 class ControlJudgment(StrictModel):
@@ -114,16 +140,23 @@ class EvaluateControlExecutor(Executor):
                 "the evidence is ambiguous or incomplete."
             ),
         )
-        evidence = "\n\n".join(
-            f"--- {_ARTIFACT_LABELS[field]} ---\n{getattr(artifacts, field)}"
-            for field in self._control.relevant_artifacts
-        )
-        prompt = (
+        text_blocks = []
+        media_contents = []
+        for role in self._control.relevant_artifacts:
+            item = artifacts.evidence[role]
+            if item.format == EvidenceFormat.TEXT:
+                text_blocks.append(f"--- {Path(item.path).name} ---\n{item.text}")
+            else:
+                text_blocks.append(f"--- {Path(item.path).name} (attached below) ---")
+                media_contents.append(_evidence_to_content(item))
+
+        prompt_text = (
             f"Today's date is {datetime.now(UTC).date().isoformat()}.\n\n"
             f"Control: {self._control.control_id}\n"
             f"Control description: {self._control.description}\n"
             f"Evaluation instructions: {self._control.evaluation_prompt}\n\n"
-            f"{evidence}\n"
+            f"{chr(10).join(text_blocks)}\n"
         )
-        response = await agent.run(prompt, options={"response_format": ControlJudgment})
+        message = Message("user", contents=[Content(type="text", text=prompt_text), *media_contents])
+        response = await agent.run([message], options={"response_format": ControlJudgment})
         return response.value

@@ -28,13 +28,41 @@ class RunRequest(StrictModel):
     confidence_threshold: float = Field(ge=0.0, le=1.0)
 
 
+class EvidenceFormat(StrEnum):
+    """How this evidence item must be presented to the model. TEXT is
+    inlined into the prompt; IMAGE/PDF are attached as multimodal message
+    content (see evaluate.py) — the model looks at the actual file rather
+    than a paraphrase of it."""
+
+    TEXT = "text"
+    IMAGE = "image"
+    PDF = "pdf"
+
+
+class EvidenceItem(StrictModel):
+    """One piece of evidence for a service, discovered by role (a fixed
+    stem like "runbook") rather than a fixed filename+extension — the
+    extension only decides `format` (see ingest.py)."""
+
+    role: str
+    path: str
+    format: EvidenceFormat
+    text: str | None = None
+    """Populated for TEXT evidence only; IMAGE/PDF evidence is read from
+    `path` at prompt-build time instead of being inlined here."""
+    media_type: str
+
+
 class ArtifactSet(StrictModel):
-    """Parsed output of `ingest` — the raw synthetic bundle, structured."""
+    """Parsed output of `ingest` — the raw synthetic bundle, structured.
+
+    Format-agnostic (TODO Phase 8): evidence is keyed by role
+    ("runbook", "failover_log", "config") rather than fixed
+    str/str/dict fields, so a role's evidence can be markdown, a PDF, or a
+    screenshot without changing this contract or ControlSpec.relevant_artifacts."""
 
     service_id: str
-    failover_log: str
-    runbook_markdown: str
-    config: dict[str, object]
+    evidence: dict[str, EvidenceItem]
 
 
 class ControlSpec(StrictModel):

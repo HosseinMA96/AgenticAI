@@ -17,7 +17,7 @@ CONTROLS: tuple[ControlSpec, ...] = (
             "value with units is present; FAIL if absent; NEEDS_REVIEW if "
             "mentioned but ambiguous or contradictory."
         ),
-        relevant_artifacts=("runbook_markdown",),
+        relevant_artifacts=("runbook",),
     ),
     ControlSpec(
         control_id="rollback_path",
@@ -28,7 +28,7 @@ CONTROLS: tuple[ControlSpec, ...] = (
             "if clear steps exist; FAIL if no rollback section exists; "
             "NEEDS_REVIEW if present but incomplete or unclear."
         ),
-        relevant_artifacts=("runbook_markdown",),
+        relevant_artifacts=("runbook",),
     ),
     ControlSpec(
         control_id="failover_test_recent",
