@@ -1,2 +1,15 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets: we use the shared root ../.env, but guard against a stray copy here
 .env
-.idea/
+
+# Large or generated data: PDFs, page images, splits
+data/
+evals/results/
+checkpoints/
+
+# The book PDF (copyrighted, large)
+Designing Multi-Agent Systems*.pdf

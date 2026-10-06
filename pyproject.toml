@@ -1,0 +1,19 @@
+[project]
+name = "finsight"
+version = "0.1.0"
+description = "Multi-agent SEC filings analyst (learning project)"
+authors = [
+    { name = "HosseinMA96", email = "hma.globe@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "agent-framework-core>=1.20.0",
+    "agent-framework-openai>=1.15.0",
+]
+
+[project.scripts]
+finsight = "finsight:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
