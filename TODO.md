@@ -13,10 +13,10 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
   - [x] **Step 1 — hello agent**
     - [x] 📘 Scaffold FinSight (D1), add MAF core + OpenAI connector (D2), run `lessons/w1_step1_hello_agent.py`.
     - [x] 🏗️ Move the client setup into `src/finsight/llm.py` (one place that builds the client for gpt-5.4 / gpt-5.4-nano) and add `.env.example`. The lesson script then uses it.
-  - [ ] **Step 2 — first tool**
-    - [ ] ⏩ **NEXT** — 📘 Add a `calculator` function tool in a lesson script. Ask a math question and watch the tool call happen.
-    - [ ] 🏗️ Move it to `src/finsight/tools/calculator.py` with a safe evaluator, plus the first offline test in `tests/` (set up `pytest`).
-  - [ ] **Step 3 — look inside** (📘 only): print the full message list after a run (user → function_call → function_result → answer), and see what is re-sent on each model call.
+  - [x] **Step 2 — first tool**
+    - [x] 📘 Add a `calculator` function tool in a lesson script. Ask a math question and watch the tool call happen.
+    - [x] 🏗️ Move it to `src/finsight/tools/calculator.py` with a safe evaluator, plus the first offline test in `tests/` (set up `pytest`).
+  - [ ] ⏩ **NEXT** — **Step 3 — look inside** (📘 only): print the full message list after a run (user → function_call → function_result → answer), and see what is re-sent on each model call.
   - [ ] **Step 4 — break it**
     - [ ] 📘 Cap the tool calls (`max_function_calls`) and see the agent answer anyway without finishing its work.
     - [ ] 🏗️ Set explicit loop limits in `llm.py` (no silent defaults) and decide how a hit limit gets flagged.

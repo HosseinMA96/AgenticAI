@@ -57,3 +57,24 @@ One entry per real choice: the options, what we chose, and **why**.
 - Nothing learned is thrown away, and the product never arrives as a big unexplained drop.
 - Experiment-only steps (inspect, break it) stay as lessons.
 - The user has read the book, so lessons are hands-on and point to the book section instead of re-teaching theory.
+
+---
+
+## D4 — Calculator: our own small `ast` evaluator (2026-10-06)
+
+**Options:**
+1. Python built-ins. `eval` is unsafe (runs any code). `ast.literal_eval` is safe but rejects arithmetic, even `2+3` (tested).
+2. A ready-made evaluator: the `simpleeval` library, or the model's hosted code interpreter.
+3. Our own ~25-line `ast` evaluator with an explicit allow-list.
+
+**Choice:** 3.
+
+**Why:**
+- Tool arguments come from the model, which can be steered (for example by an injection in a filing). Trust the tool's code, never its inputs.
+- An allow-list (numbers, `+ - * / **`, brackets, unary minus) permits exactly what we need and nothing more.
+- No new dependency, and it's easy to test offline.
+- The lesson's two-number tool isn't enough: FinanceBench needs CAGR (`**`) and multi-term sums, which would take many model round trips.
+
+**Cost:** we own the edge cases (huge exponents, division by zero).
+
+**Takeaway for Bcdr work:** give tools allow-lists, not deny-lists.
