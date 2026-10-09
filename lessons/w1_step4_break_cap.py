@@ -4,6 +4,7 @@ import asyncio
 
 from agent_framework import Agent, tool
 
+from finsight.limits import count_tool_calls, limit_hit
 from finsight.llm import get_client
 from finsight.tools.calculator import evaluate
 
@@ -35,6 +36,8 @@ QUESTION = (
 async def main() -> None:
     response = await agent.run(QUESTION)
     print("\nAgent says:\n", response.text)
+    # 🏗️ The D5 flag: our code can now tell this answer was cut short.
+    print(f"\ntool calls: {count_tool_calls(response)}  limit_hit: {limit_hit(response, max_calls=1)}")
     # The truth, computed by us, to compare against.
     g1, g2 = 112.4 / 96.0 - 1, 143.0 / 112.4 - 1
     print(f"\nCorrect: {g1:.4%}, {g2:.4%}, difference {g2 - g1:.4%}")
