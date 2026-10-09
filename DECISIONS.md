@@ -78,3 +78,44 @@ One entry per real choice: the options, what we chose, and **why**.
 **Cost:** we own the edge cases (huge exponents, division by zero).
 
 **Takeaway for Bcdr work:** give tools allow-lists, not deny-lists.
+
+---
+
+## D5 — Tool-loop limits: explicit caps, and a hit cap is flagged on the result (2026-10-08)
+
+**Context:** when MAF hits `max_function_calls`, it sets `tool_choice="none"`, forcing a text answer, and writes only a `logger.info` line (`agent_framework/_tools.py`). Nothing on the response says so, and the defaults are `max_iterations=40` with no call or time cap.
+
+**Options:**
+- **A.** Count and flag: after `run()`, count the `function_call`s in `response.messages`. Reaching the cap returns `limit_hit=True` alongside the answer.
+- **B.** Fail loud: a function middleware raises at the cap, so no answer comes back.
+- **C.** Log only: raise MAF's log line to a warning.
+
+**Choice:** A.
+
+**Why:**
+- A silent early stop is more dangerous than a runaway loop. A runaway is visible in time and cost. A truncated answer looks just like a good one.
+- It's free and small, and it reuses the message inspection from Step 3.
+- The flag is a field, so evals can count it and Week 3 (Verifier, HITL) can route on it.
+- B throws away the whole answer and needs middleware, which is a Week 4 topic. C still leaves the code unable to tell.
+
+**Cost:** "reached the cap" ≠ "needed more calls", so expect some false alarms.
+
+**Takeaway for Bcdr work:** a comment built from incomplete evidence goes to human review instead of being thrown away.
+
+---
+
+## D6 — Settings: one plain-Python `config.py` (2026-10-08)
+
+**Options:**
+- **A.** `src/finsight/config.py` with plain constants (models, loop limits).
+- **B.** A `pydantic-settings` class, with defaults that env vars can override.
+- **C.** A `config.toml` file plus a loader.
+
+**Choice:** A.
+
+**Why:**
+- It's the simplest option: no new dependency, and every change is a reviewable diff tied to an eval run.
+- B adds a dependency and uses Pydantic before Step 5 covers it. C needs parsing and has no type checks.
+- Code only imports names from `finsight.config`, so switching to B later (for the Week 5 ablation `--config` runs or Container Apps env vars) won't touch the callers.
+
+**Rule:** secrets never go in `config.py`. They stay in the root `.env`.
