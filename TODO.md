@@ -18,8 +18,8 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
     - [x] 🏗️ Move it to `src/finsight/tools/calculator.py` with a safe evaluator, plus the first offline test in `tests/` (set up `pytest`).
   - [x] **Step 3 — look inside** (📘 only): print the full message list after a run (user → function_call → function_result → answer), and see what is re-sent on each model call.
   - [ ] **Step 4 — break it**
-    - [ ] ⏩ **NEXT** — 📘 Cap the tool calls (`max_function_calls`) and see the agent answer anyway without finishing its work.
-    - [ ] 🏗️ Set explicit loop limits in `llm.py` (no silent defaults) and decide how a hit limit gets flagged.
+    - [x] 📘 Cap the tool calls (`max_function_calls`) and see the agent answer anyway without finishing its work.
+    - [ ] ⏩ **NEXT** — 🏗️ Set explicit loop limits in `llm.py` (no silent defaults) and decide how a hit limit gets flagged.
 - [ ] Typed LLM responses with Pydantic:
   - [ ] **Step 5 — Pydantic basics** (📘): a model class, validation, and what a `ValidationError` looks like. No LLM yet.
   - [ ] **Step 6 — free text vs typed** (📘): ask the same question both ways. Free text needs fragile parsing, while `response_format=Model` gives you `response.value` as a typed object.
