@@ -154,3 +154,18 @@ One entry per real choice: the options, what we chose, and **why**.
 - `Answer` needs a text answer field next to `value`.
 - Week 1 accuracy (numeric match) covers only the numeric questions. Citation hit rate covers all 66.
 - Written answers are scored by an LLM judge, which was planned for Week 5 and may need a simple version earlier.
+
+## D9 — Dev/test split: by company (2026-10-09)
+
+**Options:**
+- **A.** By company: each company's questions go wholly into dev or wholly into test.
+- **B.** Random by question: the same companies appear in both splits.
+
+**Choice:** A. Test = 3M, AMD, Best Buy, PepsiCo (24 questions, 8 numeric). Dev = the other 8 companies (42 questions, 12 numeric).
+
+**Why:**
+- With B, anything we tune on a dev filing (chunking, memory notes in Week 2, prompts) also helps the test questions on that same filing, so the test score would look better than it really is.
+- With A, the test filings are never seen while tuning, so the test score is an honest estimate on unseen filings.
+- The test companies were picked for balance only (question count, numeric count, and each test sector also appearing in dev), not by looking at question difficulty.
+
+**Also:** FinanceBench page numbers are 0-based. The splits store them 1-based (`evidence_pages`) so they match the PDF and our citations.

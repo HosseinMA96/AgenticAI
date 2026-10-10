@@ -32,7 +32,7 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
 - [ ] ⏩ **NEXT** — Data:
   - [x] Pick the companies (D8): 12 companies, 10-K questions only, numeric + written answers.
   - [x] Download those questions plus their 28 PDFs (`python -m finsight.dataset`).
-  - [ ] Build `dev`/`test` splits (~60–80 questions in total).
+  - [x] Build `dev`/`test` splits by company (D9): dev 42, test 24.
   - [ ] Add a text answer field to `Answer` (D8), so written answers fit. Update the tests.
 - [ ] Single agent with structured output: `Answer{value, unit, citations[page], confidence, reasoning}`. This uses everything from Steps 5–8.
 - [ ] Function tools: `calculator`, `render_page` (returns a page image), `search_filing_text` (keyword search).
