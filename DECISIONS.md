@@ -119,3 +119,18 @@ One entry per real choice: the options, what we chose, and **why**.
 - Code only imports names from `finsight.config`, so switching to B later (for the Week 5 ablation `--config` runs or Container Apps env vars) won't touch the callers.
 
 **Rule:** secrets never go in `config.py`. They stay in the root `.env`.
+
+## D7 — `Answer.confidence`: three named levels (2026-10-09)
+
+**Options:**
+- **A.** A `float` from 0 to 1.
+- **B.** `Literal["high", "medium", "low"]`, with each level defined in the field description.
+- **C.** No self-reported confidence. The Week 3 Verifier decides instead.
+
+**Choice:** B, and the Week 3 Verifier still checks every claim.
+
+**Why:**
+- LLM self-confidence is poorly calibrated. A float looks precise (0.87 vs 0.91), but the difference means little, and values bunch up near 0.9.
+- Three defined levels are easy to act on and to test. In Week 3, `low` will route a claim to human approval (`request_info`).
+- It matches the rating scales used in BCDR assessments.
+- Self-reported confidence is only a hint. The Verifier agent (Week 3, already in `TODO.md`) is what actually checks claims against the evidence, and it can override this field.
