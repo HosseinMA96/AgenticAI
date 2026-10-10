@@ -134,3 +134,23 @@ One entry per real choice: the options, what we chose, and **why**.
 - Three defined levels are easy to act on and to test. In Week 3, `low` will route a claim to human approval (`request_info`).
 - It matches the rating scales used in BCDR assessments.
 - Self-reported confidence is only a hint. The Verifier agent (Week 3, already in `TODO.md`) is what actually checks claims against the evidence, and it can override this field.
+
+## D8 — Dataset: 12 companies, number and sentence answers (2026-10-09)
+
+**Finding:** of FinanceBench's 112 open-source 10-K questions, only 51 have a plain numeric answer. The other 61 are written answers ("Yes, one customer accounted for 16% of revenue"). Every question has a gold evidence page.
+
+**Options:**
+- **A.** Numbers only: all 51 numeric 10-K questions, spread over 24 companies (at most 4 each), about 40 PDFs.
+- **B.** The 12 companies with the most 10-K questions, all question types: 66 questions (20 numeric, 46 written), 28 PDFs.
+
+**Choice:** B. The companies are AMD, Boeing, American Express, PepsiCo, 3M, Adobe, Amcor, Best Buy, Verizon, Corning, CVS Health and General Mills.
+
+**Why:**
+- It's closer to the BCDR work, whose comments are written judgments backed by evidence, not numbers.
+- Written questions are where agents actually struggle, so they make a better test.
+- It matches the plan (8–12 companies, 60–80 questions) and needs fewer PDFs.
+
+**Cost:**
+- `Answer` needs a text answer field next to `value`.
+- Week 1 accuracy (numeric match) covers only the numeric questions. Citation hit rate covers all 66.
+- Written answers are scored by an LLM judge, which was planned for Week 5 and may need a simple version earlier.

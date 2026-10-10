@@ -30,8 +30,10 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
     - [x] 🏗️ Write the product's `Answer` model in `src/finsight/models.py` using everything from Steps 5–8, with tests.
 - [x] Scaffold check: `.gitignore` (`data/`), package layout. Verify the installed MAF version's API surface.
 - [ ] ⏩ **NEXT** — Data:
-  - [ ] Pick 8–12 companies from FinanceBench and download those questions plus their PDFs.
+  - [x] Pick the companies (D8): 12 companies, 10-K questions only, numeric + written answers.
+  - [x] Download those questions plus their 28 PDFs (`python -m finsight.dataset`).
   - [ ] Build `dev`/`test` splits (~60–80 questions in total).
+  - [ ] Add a text answer field to `Answer` (D8), so written answers fit. Update the tests.
 - [ ] Single agent with structured output: `Answer{value, unit, citations[page], confidence, reasoning}`. This uses everything from Steps 5–8.
 - [ ] Function tools: `calculator`, `render_page` (returns a page image), `search_filing_text` (keyword search).
 - [ ] Our own MCP server `edgar-mcp` (FastMCP):
