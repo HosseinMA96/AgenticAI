@@ -22,8 +22,8 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
     - [x] 🏗️ Set explicit loop limits in `llm.py` (no silent defaults) and decide how a hit limit gets flagged (D5: `finsight/limits.py`).
     - [x] 🏗️ Move models and loop limits into one settings file, `src/finsight/config.py` (D6).
 - [ ] Typed LLM responses with Pydantic:
-  - [ ] ⏩ **NEXT** — **Step 5 — Pydantic basics** (📘): a model class, validation, and what a `ValidationError` looks like. No LLM yet.
-  - [ ] **Step 6 — free text vs typed** (📘): ask the same question both ways. Free text needs fragile parsing, while `response_format=Model` gives you `response.value` as a typed object.
+  - [x] **Step 5 — Pydantic basics** (📘): a model class, validation, and what a `ValidationError` looks like. No LLM yet.
+  - [ ] ⏩ **NEXT** — **Step 6 — free text vs typed** (📘): ask the same question both ways. Free text needs fragile parsing, while `response_format=Model` gives you `response.value` as a typed object.
   - [ ] **Step 7 — what the model actually sees** (📘): look at the JSON schema Pydantic produces, and see how `Field(description=...)` changes the answers.
   - [ ] **Step 8 — when typing goes wrong**
     - [ ] 📘 A wrong type, a missing field, or the model "filling in" a field it doesn't know (e.g. making up a citation), and how to defend against each (optional fields, `None`, validators).
