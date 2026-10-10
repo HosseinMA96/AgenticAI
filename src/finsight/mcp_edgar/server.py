@@ -89,3 +89,27 @@ async def get_company_facts(ticker: str, concept: str) -> list[dict] | dict:
             if v.get("form") == "10-K" and "start" in v and _days(v["start"], v["end"]) > 350:
                 rows[v["end"]] = {"period_end": v["end"], "value": v["val"], "unit": unit, "filed": v["filed"]}
     return sorted(rows.values(), key=lambda r: r["period_end"], reverse=True)[:10]
+
+
+# --- Resource: content the APP chooses to load, addressed like a file path (book 12.2). ---
+@mcp.resource("filing://{doc_name}/{page}")
+def filing_page(doc_name: str, page: str) -> str:
+    """Text of one page of a downloaded 10-K, e.g. filing://ADOBE_2022_10K/54."""
+    from finsight.tools.filings import load_pages  # local PDFs from data/pdfs
+
+    pages = load_pages(doc_name)
+    n = int(page)
+    if not 1 <= n <= len(pages):
+        raise ValueError(f"page must be between 1 and {len(pages)}")
+    return pages[n - 1]
+
+
+# --- Prompt: a ready-made instruction template the server shares with any client. ---
+@mcp.prompt()
+def check_number(ticker: str, concept: str, year: str, value_from_pdf: str) -> str:
+    """Cross-check a number read from a 10-K PDF against the SEC's official data."""
+    return (
+        f"A 10-K PDF says {ticker}'s {concept} for fiscal {year} was {value_from_pdf}. "
+        f"Use get_company_facts to fetch the official {concept} values for {ticker}, "
+        f"find fiscal {year}, and say whether they match. Mind the units: the SEC reports raw USD."
+    )

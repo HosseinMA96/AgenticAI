@@ -39,7 +39,7 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
   - [x] Command line: `uv run python -m finsight.agents.analyst <FILING_ID> "<question>"`.
 - [x] Function tools: `calculator`, `render_page` (returns a page image), `search_filing_text` (keyword search).
 - [ ] ⏩ **NEXT** — Our own MCP server `edgar-mcp` (FastMCP):
-  - [ ] Tools `get_company_facts` and `list_filings`, a `filing://` resource, and a prompt.
+  - [x] Tools `get_company_facts` and `list_filings`, a `filing://` resource, and a prompt.
   - [ ] Consume it over stdio, then over streamable HTTP.
 - [ ] Connect one third-party MCP server and watch how tool discovery works.
 - [ ] Eval harness v0: numeric match with tolerance, tokens and latency. **Record the baseline.**
