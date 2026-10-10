@@ -29,12 +29,12 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
     - [x] 📘 A wrong type, a missing field, or the model "filling in" a field it doesn't know (e.g. making up a citation), and how to defend against each (optional fields, `None`, validators).
     - [x] 🏗️ Write the product's `Answer` model in `src/finsight/models.py` using everything from Steps 5–8, with tests.
 - [x] Scaffold check: `.gitignore` (`data/`), package layout. Verify the installed MAF version's API surface.
-- [ ] ⏩ **NEXT** — Data:
+- [x] Data:
   - [x] Pick the companies (D8): 12 companies, 10-K questions only, numeric + written answers.
   - [x] Download those questions plus their 28 PDFs (`python -m finsight.dataset`).
   - [x] Build `dev`/`test` splits by company (D9): dev 42, test 24.
-  - [ ] Add a text answer field to `Answer` (D8), so written answers fit. Update the tests.
-- [ ] Single agent with structured output: `Answer{value, unit, citations[page], confidence, reasoning}`. This uses everything from Steps 5–8.
+  - [x] Add a text answer field to `Answer` (D8), so written answers fit. Update the tests.
+- [ ] ⏩ **NEXT** — Single agent with structured output: `Answer{value, unit, citations[page], confidence, reasoning}`. This uses everything from Steps 5–8.
 - [ ] Function tools: `calculator`, `render_page` (returns a page image), `search_filing_text` (keyword search).
 - [ ] Our own MCP server `edgar-mcp` (FastMCP):
   - [ ] Tools `get_company_facts` and `list_filings`, a `filing://` resource, and a prompt.
