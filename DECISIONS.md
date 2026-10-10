@@ -169,3 +169,30 @@ One entry per real choice: the options, what we chose, and **why**.
 - The test companies were picked for balance only (question count, numeric count, and each test sector also appearing in dev), not by looking at question difficulty.
 
 **Also:** FinanceBench page numbers are 0-based. The splits store them 1-based (`evidence_pages`) so they match the PDF and our citations.
+
+## D10 — How the first agent reads a 10-K: a search tool (2026-10-09)
+
+**Options:**
+- **A.** Put the whole filing text in the prompt (about 90k–200k tokens per question). No tools.
+- **B.** Give the agent a keyword-search tool over the filing's pages, and let it decide what to look up.
+
+**Choice:** B.
+
+**Why:**
+- It's real agent behaviour: the model plans what to look up and cites what it found.
+- It's far cheaper and faster per question than resending a whole 10-K every time.
+- It carries over to BCDR, where the evidence set is too large to paste in.
+- It pulls the `search_filing_text` tool forward from the next TODO item, so the two items are built together.
+- A could still serve later as a "no retrieval" comparison point in the eval.
+
+## D11 — PDF library: PyMuPDF (2026-10-09)
+
+**Options:**
+- **A.** PyMuPDF: fast, good text extraction from tables, and it also renders pages as images.
+- **B.** pypdf: pure Python with a permissive license, but weaker on tables and unable to render images.
+
+**Choice:** A.
+
+**Why:**
+- One library covers both text search now and `render_page` / multimodal evidence in Week 2.
+- Its license is AGPL. That's fine here because the repo is public. Revisit this if the BCDR work reuses the code in a closed product.
