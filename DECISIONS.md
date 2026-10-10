@@ -196,3 +196,15 @@ One entry per real choice: the options, what we chose, and **why**.
 **Why:**
 - One library covers both text search now and `render_page` / multimodal evidence in Week 2.
 - Its license is AGPL. That's fine here because the repo is public. Revisit this if the BCDR work reuses the code in a closed product.
+
+## D12 — MCP library: the official `mcp` SDK (2026-10-09)
+
+**Options:**
+- **A.** The official `mcp` SDK, which includes `FastMCP` for writing servers.
+- **B.** The standalone `fastmcp` package: newer, with extras such as auth, proxies and server composition.
+
+**Choice:** A.
+
+**Why:**
+- MAF's MCP client tools (`MCPStdioTool`, `MCPStreamableHTTPTool`) need `mcp` anyway, so one package covers both the server and the client side.
+- B's extras aren't needed for a two-tool server. We can switch if the final step needs auth features.
