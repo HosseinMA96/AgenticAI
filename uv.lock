@@ -71,6 +71,7 @@ source = { editable = "." }
 dependencies = [
     { name = "agent-framework-core" },
     { name = "agent-framework-openai" },
+    { name = "python-dotenv" },
 ]
 
 [package.dev-dependencies]
@@ -82,6 +83,7 @@ dev = [
 requires-dist = [
     { name = "agent-framework-core", specifier = ">=1.20.0" },
     { name = "agent-framework-openai", specifier = ">=1.15.0" },
+    { name = "python-dotenv", specifier = ">=1.2.4" },
 ]
 
 [package.metadata.requires-dev]

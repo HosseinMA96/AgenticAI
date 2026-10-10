@@ -8,7 +8,7 @@ Don't advance past a ✅ acceptance check until it has really been run.
 Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
 **How steps work (D3):** 📘 **Lesson** = a tiny sandbox script in `lessons/` to understand one idea. 🏗️ **Product** = right after, move what we learned into the real app in `src/finsight/`. Experiment-only steps have no product part. The user knows the book, so lessons are hands-on and point to the book section rather than re-teach the theory.
 
-- [ ] The agent loop and tools:
+- [x] The agent loop and tools:
   - [x] Plain-language intro: an agent is a chatbot that can ask your code to run tools.
   - [x] **Step 1 — hello agent**
     - [x] 📘 Scaffold FinSight (D1), add MAF core + OpenAI connector (D2), run `lessons/w1_step1_hello_agent.py`.
@@ -28,8 +28,8 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
   - [x] **Step 8 — when typing goes wrong**
     - [x] 📘 A wrong type, a missing field, or the model "filling in" a field it doesn't know (e.g. making up a citation), and how to defend against each (optional fields, `None`, validators).
     - [x] 🏗️ Write the product's `Answer` model in `src/finsight/models.py` using everything from Steps 5–8, with tests.
-- [ ] ⏩ **NEXT** — Scaffold check: `.gitignore` (`data/`), package layout. Verify the installed MAF version's API surface.
-- [ ] Data:
+- [x] Scaffold check: `.gitignore` (`data/`), package layout. Verify the installed MAF version's API surface.
+- [ ] ⏩ **NEXT** — Data:
   - [ ] Pick 8–12 companies from FinanceBench and download those questions plus their PDFs.
   - [ ] Build `dev`/`test` splits (~60–80 questions in total).
 - [ ] Single agent with structured output: `Answer{value, unit, citations[page], confidence, reasoning}`. This uses everything from Steps 5–8.
