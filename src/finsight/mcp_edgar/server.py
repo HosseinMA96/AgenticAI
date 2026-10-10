@@ -6,6 +6,7 @@ SEC rules: every request needs a descriptive User-Agent, max 10 requests/second.
 import asyncio
 import os
 import time
+from datetime import date
 from pathlib import Path
 
 import httpx
@@ -54,3 +55,37 @@ async def list_filings(ticker: str, form: str = "10-K", limit: int = 10) -> list
         if f == form
     ]
     return rows[:limit]
+
+
+def _days(start: str, end: str) -> int:
+    return (date.fromisoformat(end) - date.fromisoformat(start)).days
+
+
+_facts_cache: dict[str, dict] = {}  # companyfacts is several MB per company: fetch once per server run
+
+
+@mcp.tool()
+async def get_company_facts(ticker: str, concept: str) -> list[dict] | dict:
+    """Official annual numbers a company reported to the SEC (from its 10-K XBRL data).
+    `concept` is a US-GAAP name such as 'Revenues', 'NetIncomeLoss', 'Assets', 'OperatingIncomeLoss'.
+    If the name isn't exact, returns matching concept names to choose from instead.
+    Values are in raw units (e.g. USD, not millions)."""
+    cik = await _cik(ticker)
+    if cik not in _facts_cache:
+        _facts_cache[cik] = (await _get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"))["facts"].get("us-gaap", {})
+    facts = _facts_cache[cik]
+
+    if concept not in facts:
+        # Help the agent find the right name instead of failing: XBRL names are hard to guess.
+        key = concept.lower()
+        matches = [name for name, f in facts.items() if key in name.lower() or key in (f.get("label") or "").lower()]
+        return {"error": f"no concept {concept!r}", "did_you_mean": matches[:15]}
+
+    rows = {}
+    for unit, values in facts[concept]["units"].items():
+        for v in values:
+            # Keep full-year figures from 10-Ks only. A 10-K also reports its quarters, so check the
+            # period is about a year long. Later filings repeat old years; keep the latest restatement.
+            if v.get("form") == "10-K" and "start" in v and _days(v["start"], v["end"]) > 350:
+                rows[v["end"]] = {"period_end": v["end"], "value": v["val"], "unit": unit, "filed": v["filed"]}
+    return sorted(rows.values(), key=lambda r: r["period_end"], reverse=True)[:10]
