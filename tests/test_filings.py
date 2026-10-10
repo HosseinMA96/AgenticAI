@@ -27,3 +27,14 @@ def test_no_match_returns_nothing():
 def test_tool_output_has_page_headers():
     out = filings.search_filing_text.func("X", "balance sheets")
     assert out.startswith("[page 2]")
+
+
+def test_render_page_returns_image(monkeypatch):
+    monkeypatch.setattr(filings, "page_png", lambda doc, page: b"\x89PNG fake")
+    out = filings.render_page.func("X", 2)
+    assert out.type == "data" and out.media_type == "image/png"
+
+
+def test_render_page_rejects_bad_page():
+    assert filings.render_page.func("X", 4).startswith("error")
+    assert filings.render_page.func("X", 0).startswith("error")

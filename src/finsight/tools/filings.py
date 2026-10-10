@@ -1,4 +1,4 @@
-"""Read 10-K filings: page text plus a keyword search tool (D10, D11).
+"""Read 10-K filings: page text, a keyword search tool, and page images (D10, D11).
 
 Page numbers are 1-based everywhere, matching the PDF viewer and dataset.py.
 """
@@ -10,7 +10,7 @@ from functools import cache
 from typing import Annotated
 
 import pymupdf
-from agent_framework import tool
+from agent_framework import Content, tool
 from pydantic import Field
 
 from finsight.dataset import PDFS
@@ -56,3 +56,25 @@ def search_filing_text(
         return "No pages matched. Try other keywords."
     pages = load_pages(doc_name)
     return "\n\n".join(f"[page {n}]\n{pages[n - 1]}" for n in hits)
+
+
+# ~850x1100 px for a letter page: table digits stay readable without paying for a huge image.
+_DPI = 100
+
+
+def page_png(doc_name: str, page: int) -> bytes:
+    with pymupdf.open(PDFS / f"{doc_name}.pdf") as pdf:
+        return pdf[page - 1].get_pixmap(dpi=_DPI).tobytes("png")
+
+
+@tool
+def render_page(
+    doc_name: Annotated[str, Field(description="Filing id, e.g. 'ADOBE_2022_10K'.")],
+    page: Annotated[int, Field(description="1-based page number, as shown in [page N] search results.")],
+) -> Content | str:
+    """Return an image of one filing page. Use it when a page's extracted text is hard to read,
+    e.g. a table whose numbers and column headers (years) got scrambled."""
+    if not 1 <= page <= len(load_pages(doc_name)):
+        return f"error: page must be between 1 and {len(load_pages(doc_name))}"
+    # MAF sends image Content in a tool result to the model as an image (verified in agent_framework_openai).
+    return Content.from_data(page_png(doc_name, page), "image/png")

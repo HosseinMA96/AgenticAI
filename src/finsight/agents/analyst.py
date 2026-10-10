@@ -1,4 +1,4 @@
-"""The first FinSight agent: one analyst with search + calculator tools (D10)."""
+"""The first FinSight agent: one analyst with search, page-image and calculator tools (D10)."""
 
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from agent_framework import Agent, AgentResponse
 from finsight.llm import get_client
 from finsight.models import Answer
 from finsight.tools.calculator import calculator
-from finsight.tools.filings import search_filing_text
+from finsight.tools.filings import render_page, search_filing_text
 
 # Prompts live in .md files so a prompt change shows up as a diff (CLAUDE.md).
 _PROMPT = (Path(__file__).parents[1] / "prompts" / "analyst.md").read_text()
@@ -18,7 +18,7 @@ def build_analyst() -> Agent:
         client=get_client(),
         name="analyst",
         instructions=_PROMPT,
-        tools=[search_filing_text, calculator],
+        tools=[search_filing_text, render_page, calculator],
     )
 
 
