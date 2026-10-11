@@ -316,3 +316,13 @@ These are the "decisions to discuss" from `TODO.md` Week 1. Most were settled wh
 - Every chunk carries its own 4 KB vector, so small chunks don't fit the Free tier.
 - 1024 tokens is about one page. Chunk size is then the same for both chunkers, and the experiment isolates *where* they cut (token count vs page edges). B would mix two variables.
 - Verify the real index size in Azure after upload.
+
+## D20 — Counting tokens: tiktoken (2026-10-11)
+
+**Options:**
+- **A. `tiktoken`:** the exact tokenizer used by `text-embedding-3-large`. One small dependency.
+- B. Estimate 4 characters ≈ 1 token: no dependency, but inaccurate on number-heavy pages.
+
+**Choice:** A.
+
+**Why:** D19's fair comparison needs equal chunk sizes, so count exactly. It also lets us guard the embedding model's 8,191-token input limit.

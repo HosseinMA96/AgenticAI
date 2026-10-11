@@ -12,6 +12,7 @@ dependencies = [
     "mcp>=1.24.0,<2",
     "pymupdf>=1.28.2",
     "python-dotenv>=1.2.4",
+    "tiktoken>=0.14.0",
 ]
 
 [project.scripts]
