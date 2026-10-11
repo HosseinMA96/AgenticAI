@@ -29,8 +29,8 @@ async def search(
     top: int = 5,
     vector: list[float] | None = None,  # pass a precomputed query vector to avoid re-embedding
 ) -> list[dict]:
-    """Return the top chunks as dicts with id, pages and text, best first."""
-    kwargs: dict = {"filter": f"filing_id eq '{filing_id}'", "top": top, "select": ["id", "pages", "text"]}
+    """Return the top chunks as dicts with id, pages, main_page and text, best first."""
+    kwargs: dict = {"filter": f"filing_id eq '{filing_id}'", "top": top, "select": ["id", "pages", "main_page", "text"]}
     if mode != "keyword":
         vector = vector or await embed_query(query)
         kwargs["vector_queries"] = [

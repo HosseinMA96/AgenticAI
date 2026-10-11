@@ -48,6 +48,7 @@ def index_schema(name: str) -> SearchIndex:
             # Filterable, so a search can be limited to one filing.
             SimpleField(name="filing_id", type=T.STRING, filterable=True),
             SimpleField(name="pages", type="Collection(Edm.Int32)", filterable=True),
+            SimpleField(name="main_page", type=T.INT32, filterable=True),
             # Searchable = goes into the keyword (BM25) half of hybrid search.
             SearchableField(name="text"),
             # The vector half. Not returned in results: nobody needs to read 1024 floats.

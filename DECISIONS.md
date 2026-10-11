@@ -343,3 +343,16 @@ Some questions need more than one gold page (e.g. Adobe's cash-flow ratio: pages
 **Why:**
 - Recall@k shows whether the agent gets *all* the evidence, which multi-page questions need.
 - Hit@k comes from the same results at no extra cost. The gap between the two shows how often retrieval finds only part of the evidence.
+
+## D22 — Scoring fixed-size chunks that span pages: report both (2026-10-11)
+
+91% of fixed-size chunks span 2+ pages.
+
+**Options:**
+- A. Any page: a hit if any page the chunk touches is gold. Favours fixed-size, since a chunk with a few tokens of a gold page still counts.
+- B. Main page: score each chunk by the page holding most of its tokens. Fair, but misses when the answer sits in the smaller part.
+- **C. Both, with B as the headline.**
+
+**Choice:** C. Chunks carry a `main_page` field.
+
+**Why:** the headline is fair (one page per chunk for both chunkers). The gap between B and A measures the bias instead of hiding it.

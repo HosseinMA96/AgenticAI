@@ -24,3 +24,10 @@ def test_fixed_chunks_size_overlap_and_coverage():
 def test_fixed_chunk_can_straddle_pages():
     chunks = fixed_chunks("X", ["short page one", "short page two"], size=1024)
     assert len(chunks) == 1 and chunks[0].pages == [1, 2]
+
+
+def test_main_page_is_where_most_tokens_are():
+    long_page = " ".join(f"word{i}" for i in range(400))
+    chunks = fixed_chunks("X", ["tiny", long_page], size=1024)
+    assert chunks[0].pages == [1, 2] and chunks[0].main_page == 2
+    assert page_chunks("X", ["a", "b"])[1].main_page == 2

@@ -28,11 +28,15 @@ async def run_question(index: str, row: dict) -> dict:
     out = {"id": row["id"], "gold_pages": row["evidence_pages"], "modes": {}}
     for mode in MODES:
         docs = await search(index, row["question"], row["doc_name"], mode, top=max(KS), vector=vector)
-        retrieved = [d["pages"] for d in docs]
+        # Headline: each chunk scored by its main page (D22). For page chunks
+        # that's simply its page. "any" also credits every page a chunk touches.
+        retrieved = [[d["main_page"]] for d in docs]
+        any_page = [d["pages"] for d in docs]
         out["modes"][mode] = {
-            "retrieved": retrieved,
+            "retrieved": any_page,
             **{f"hit@{k}": hit_at_k(retrieved, row["evidence_pages"], k) for k in KS},
             **{f"recall@{k}": recall_at_k(retrieved, row["evidence_pages"], k) for k in KS},
+            "recall@5 any-page": recall_at_k(any_page, row["evidence_pages"], 5),
         }
     return out
 
@@ -45,7 +49,7 @@ async def main(chunker: str, split: str, limit: int | None) -> None:
         results.append(await run_question(index, row))
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    metrics = [f"{m}@{k}" for m in ("hit", "recall") for k in KS]
+    metrics = [f"{m}@{k}" for m in ("hit", "recall") for k in KS] + ["recall@5 any-page"]
     summary = {
         mode: {m: sum(r["modes"][mode][m] for r in results) / len(results) for m in metrics}
         for mode in MODES
@@ -56,7 +60,7 @@ async def main(chunker: str, split: str, limit: int | None) -> None:
     table = EVALS / "retrieval.md"
     if not table.exists():
         table.write_text(
-            "# Retrieval leaderboard\n\nOne row per (run, search mode). Queries are the raw questions (D21).\n\n"
+            "# Retrieval leaderboard\n\nOne row per (run, search mode). Queries are the raw questions. Scored by main page; any-page shown for comparison (D21, D22).\n\n"
             "| when | index | mode | split | n | " + " | ".join(metrics) + " |\n"
             "|---|---|---|---|---|" + "---|" * len(metrics) + "\n"
         )
