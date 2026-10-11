@@ -252,3 +252,22 @@ These are the "decisions to discuss" from `TODO.md` Week 1. Most were settled wh
 - **MCP over stdio vs HTTP:** both are built (`analyst` vs `analyst --http`). Stdio is for local use, where the agent owns the server's lifetime. HTTP is for a server that runs on its own, which is what the final Azure step needs (an internal-only Container App).
 - **How to write tool descriptions:** the description and schema are all the model sees (Step 2 and Step 7). Say when to use the tool, give examples in the words the data uses (10-K terms), and say what to do on failure ("search again with different keywords"). A third-party server's description is a prompt written by a stranger (D13).
 - **Eval metric:** see D14. Numeric match in code, an LLM judge for written answers, and a two-step citation check. One run is noisy: only 2 of 6 failures repeated across two runs, so compare configurations over 2–3 runs, not one number.
+
+## D16 — SEC cross-check prompt: tested, not adopted (2026-10-10)
+
+**Experiment:** the prompt `analyst_crosscheck.md` requires a `get_company_facts` check on every numeric answer. It differs from the baseline prompt by one line. Run on the full dev set.
+
+| config | accuracy | numeric | written | citation supported | $ | p50 / p95 s |
+|---|---|---|---|---|---|---|
+| baseline | 86% | 100% | 80% | 88% | 1.44 | 7 / 17 |
+| crosscheck | 88% | 100% | 83% | 81% | 2.10 | 10 / 21 |
+
+- MCP was used on 32 of 42 questions, which passes the Week 1 acceptance check.
+- Per question: 2 fixed and 1 broken, a net +1 question. That's within run-to-run noise (D15).
+
+**Choice:** keep `analyst.md` as the default. Keep `analyst_crosscheck.md` for later comparisons.
+
+**Why:**
+- Numeric accuracy was already 100%, so a check on numbers had nothing left to fix.
+- It costs 46% more and adds about 3s per question, for a gain no bigger than the noise.
+- Lesson: an extra tool is only worth it where the agent is actually failing. Measure before keeping it.

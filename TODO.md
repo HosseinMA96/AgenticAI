@@ -50,10 +50,10 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
   - MCP over stdio vs HTTP.
   - How to write tool descriptions.
   - Choice of eval metric.
-- [ ] ⏩ **NEXT** — ✅ The agent answers ≥10 dev questions end to end using MCP plus a local tool. The baseline is recorded in `evals/leaderboard.md`.
+- [x] ✅ The agent answers ≥10 dev questions end to end using MCP plus a local tool. The baseline is recorded in `evals/leaderboard.md`.
   - [x] 10-question check: 10/10 correct, but MCP was never called (the agent chose not to).
-  - [ ] Cross-check prompt variant (`analyst_crosscheck.md`) that requires an SEC check on numeric answers. Run on dev and compare with the baseline.
-- [ ] Reflect (NOTES.md): tool vs MCP tool vs agent-as-tool. Why build the eval before tuning the prompt?
+  - [x] Cross-check prompt variant (`analyst_crosscheck.md`): MCP used on 32/42, accuracy 88% vs 86% (noise), cost +46%. Not adopted (D16).
+- [ ] ⏩ **NEXT** — Reflect (NOTES.md): tool vs MCP tool vs agent-as-tool. Why build the eval before tuning the prompt?
 
 ## Week 2: RAG, multimodal evidence, memory types
 Book: 4.7–4.8, 4.12, 5.3, Ch 14
