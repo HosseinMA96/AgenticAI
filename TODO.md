@@ -63,6 +63,7 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
   - [x] **Step 1 — embeddings** (📘 `lessons/w2_step1_embeddings.py`): embed a question and a few chunks, print similarity. Break it: an exact number (`598,194`) ranks the wrong page first, which is why we use hybrid search.
   - [ ] ⏩ **NEXT** — 🏗️ Chunkers + ingestion into `src/finsight/rag/`, with offline tests. Upload one index; check its real size in Azure.
 - [ ] Retrieval eval: recall@k against the gold evidence page, for each chunker.
+  - Decide how to score fixed-size chunks fairly: 91% of them span 2+ pages, so "any page hits" gives them a big head start.
 - [ ] Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
 - [ ] Memory:
   - [ ] Thread/session (short-term).
@@ -139,6 +140,9 @@ Book: Ch 10, 11, 13, 12.3
   - [ ] A "not investment advice" output policy.
   - [ ] Walk through the 13.5 checklist.
 - [ ] Optional: expose the Verifier via A2A.
+- [ ] Optional (MLE / Applied Science bridge): fine-tune the embedding model or a reranker and measure recall@k against the off-the-shelf model.
+  - Train only on real (question, evidence page) pairs from FinanceBench questions outside our 12 companies. No synthetic data, and never `test`.
+  - Report the gain across several runs, with the noise.
 - [ ] Decisions to discuss:
   - Trusting the judge.
   - Overfitting to `dev`.
