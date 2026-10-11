@@ -238,3 +238,17 @@ One entry per real choice: the options, what we chose, and **why**.
 - **Choice:** both, in order. First the free strict check. Only if it misses does a cheap `gpt-5.4-nano` judge read the cited pages and say whether they support the answer.
 - **Why:** the strict check alone undercounts (Boeing: page 85 also states the number, but the gold page is 52). A judge on every question costs more for no gain when the strict check already passed.
 - **Reported:** `citation_hit` (strict) and `citation_supported` (strict or judge), so both stay visible.
+
+## D15 — Week 1 discussion topics: conclusions (2026-10-10)
+
+These are the "decisions to discuss" from `TODO.md` Week 1. Most were settled while building. This entry collects them in one place.
+
+- **Why one agent first:** it's the baseline every multi-agent design has to beat (86% on dev, $1.44). Without it, a multi-agent version can't show it's worth its extra cost and latency.
+- **Structured output vs free text:** structured. Free text needed fragile parsing, and the regex grabbed the year 2022 instead of the revenue (lesson w1_step6). Typed output plus validators caught made-up answers (w1_step8). See D7 and D8.
+- **Function tool vs MCP tool vs agent-as-tool:**
+  - Function tool: a quick, fixed job in our own code (`calculator`, `search_filing_text`).
+  - MCP tool: a job worth sharing with other apps or machines (`edgar-mcp`).
+  - Agent-as-tool: a job that needs its own reasoning and would otherwise fill the caller's context with pages. It costs a whole extra model loop, so it's deferred to Week 4 (sub-agent summary), where its savings can be measured.
+- **MCP over stdio vs HTTP:** both are built (`analyst` vs `analyst --http`). Stdio is for local use, where the agent owns the server's lifetime. HTTP is for a server that runs on its own, which is what the final Azure step needs (an internal-only Container App).
+- **How to write tool descriptions:** the description and schema are all the model sees (Step 2 and Step 7). Say when to use the tool, give examples in the words the data uses (10-K terms), and say what to do on failure ("search again with different keywords"). A third-party server's description is a prompt written by a stranger (D13).
+- **Eval metric:** see D14. Numeric match in code, an LLM judge for written answers, and a two-step citation check. One run is noisy: only 2 of 6 failures repeated across two runs, so compare configurations over 2–3 runs, not one number.

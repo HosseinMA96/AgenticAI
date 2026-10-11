@@ -64,6 +64,8 @@ async def score_one(agent: Agent, row: dict) -> dict:
     out |= {
         "latency_s": time.monotonic() - start,
         "tool_calls": count_tool_calls(response),
+        # Which tools, in order: shows MCP vs local use, and later feeds trajectory metrics (week 5).
+        "tools_used": [c.name for m in response.messages for c in m.contents if c.type == "function_call"],
         "limit_hit": limit_hit(response),
         "usage": usage,
         "cost_usd": cost_usd(MAIN_MODEL, usage),
@@ -131,7 +133,7 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
-async def main(split: str, limit: int | None, config: str) -> None:
+async def main(split: str, limit: int | None, config: str, prompt: str) -> None:
     if split != "dev":
         # CLAUDE.md: test runs only at the end of week 5, with the user's explicit OK each time.
         if input(f"Run the held-out '{split}' split? Type yes: ") != "yes":
@@ -139,7 +141,7 @@ async def main(split: str, limit: int | None, config: str) -> None:
     rows = [json.loads(l) for l in (SPLITS / f"{split}.jsonl").read_text().splitlines()][:limit]
     sem = asyncio.Semaphore(CONCURRENCY)
     async with edgar_stdio() as edgar:
-        agent = build_analyst(edgar)
+        agent = build_analyst(edgar, prompt=prompt)
 
         async def bounded(row: dict) -> dict:
             async with sem:
@@ -153,7 +155,7 @@ async def main(split: str, limit: int | None, config: str) -> None:
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     (EVALS / "results").mkdir(exist_ok=True)
     out_file = EVALS / "results" / f"{stamp}_{config}.json"
-    out_file.write_text(json.dumps({"config": config, "split": split, "summary": summary, "rows": results}, indent=1))
+    out_file.write_text(json.dumps({"config": config, "prompt": prompt, "split": split, "summary": summary, "rows": results}, indent=1))
 
     board = EVALS / "leaderboard.md"
     if not board.exists():
@@ -180,5 +182,6 @@ if __name__ == "__main__":
     p.add_argument("--split", default="dev")
     p.add_argument("--limit", type=int)
     p.add_argument("--config", default="baseline")
+    p.add_argument("--prompt", default="analyst", help="system prompt file in src/finsight/prompts/, without .md")
     a = p.parse_args()
-    asyncio.run(main(a.split, a.limit, a.config))
+    asyncio.run(main(a.split, a.limit, a.config, a.prompt))

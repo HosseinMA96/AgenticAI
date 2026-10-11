@@ -43,14 +43,16 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
   - [x] Consume it over stdio, then over streamable HTTP (`analyst --http`).
 - [x] Connect one third-party MCP server and watch how tool discovery works (D13, `lessons/w1_step9_third_party_mcp.py`).
 - [x] Eval harness v0 (D14, `python -m evals.run`): numeric match with tolerance, LLM judge, citations, tokens, $ and latency. **Baseline recorded: 86% on dev, $1.44.**
-- [ ] Decisions to discuss:
+- [x] Decisions to discuss (D15):
   - Why one agent first.
   - Structured output vs free text.
   - Function tool vs MCP vs agent-as-tool.
   - MCP over stdio vs HTTP.
   - How to write tool descriptions.
   - Choice of eval metric.
-- [ ] ✅ The agent answers ≥10 dev questions end to end using MCP plus a local tool. The baseline is recorded in `evals/leaderboard.md`.
+- [ ] ⏩ **NEXT** — ✅ The agent answers ≥10 dev questions end to end using MCP plus a local tool. The baseline is recorded in `evals/leaderboard.md`.
+  - [x] 10-question check: 10/10 correct, but MCP was never called (the agent chose not to).
+  - [ ] Cross-check prompt variant (`analyst_crosscheck.md`) that requires an SEC check on numeric answers. Run on dev and compare with the baseline.
 - [ ] Reflect (NOTES.md): tool vs MCP tool vs agent-as-tool. Why build the eval before tuning the prompt?
 
 ## Week 2: RAG, multimodal evidence, memory types

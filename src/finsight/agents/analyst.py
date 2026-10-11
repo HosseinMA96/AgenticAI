@@ -10,7 +10,7 @@ from finsight.tools.calculator import calculator
 from finsight.tools.filings import render_page, search_filing_text
 
 # Prompts live in .md files so a prompt change shows up as a diff (CLAUDE.md).
-_PROMPT = (Path(__file__).parents[1] / "prompts" / "analyst.md").read_text()
+_PROMPTS = Path(__file__).parents[1] / "prompts"
 
 
 def edgar_stdio() -> MCPStdioTool:
@@ -24,11 +24,12 @@ def edgar_http(url: str = "http://127.0.0.1:8000/mcp") -> MCPStreamableHTTPTool:
     return MCPStreamableHTTPTool(name="edgar", url=url, load_prompts=False)
 
 
-def build_analyst(*extra_tools) -> Agent:
+def build_analyst(*extra_tools, prompt: str = "analyst") -> Agent:
+    """prompt: a file name in prompts/ without .md, so eval configs can swap prompts."""
     return Agent(
         client=get_client(),
         name="analyst",
-        instructions=_PROMPT,
+        instructions=(_PROMPTS / f"{prompt}.md").read_text(),
         tools=[search_filing_text, render_page, calculator, *extra_tools],
     )
 
