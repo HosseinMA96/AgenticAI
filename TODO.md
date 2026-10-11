@@ -53,11 +53,11 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
 - [x] ✅ The agent answers ≥10 dev questions end to end using MCP plus a local tool. The baseline is recorded in `evals/leaderboard.md`.
   - [x] 10-question check: 10/10 correct, but MCP was never called (the agent chose not to).
   - [x] Cross-check prompt variant (`analyst_crosscheck.md`): MCP used on 32/42, accuracy 88% vs 86% (noise), cost +46%. Not adopted (D16).
-- [ ] ⏩ **NEXT** — Reflect (NOTES.md): tool vs MCP tool vs agent-as-tool. Why build the eval before tuning the prompt?
+- [x] Reflect (NOTES.md): tool vs MCP tool vs agent-as-tool. Why build the eval before tuning the prompt?
 
 ## Week 2: RAG, multimodal evidence, memory types
 Book: 4.7–4.8, 4.12, 5.3, Ch 14
-- [ ] Ingestion: PDF → page text and images → two chunkers (fixed-size vs page/section-aware) → embeddings (1024-d) → Azure AI Search (hybrid + semantic ranker). *Confirm before creating the Search resource.*
+- [ ] ⏩ **NEXT** — Ingestion: PDF → page text and images → two chunkers (fixed-size vs page/section-aware) → embeddings (1024-d) → Azure AI Search (hybrid + semantic ranker). *Confirm before creating the Search resource.*
 - [ ] Retrieval eval: recall@k against the gold evidence page, for each chunker.
 - [ ] Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
 - [ ] Memory:
