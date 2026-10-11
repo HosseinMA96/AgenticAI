@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from agent_framework import Agent, AgentResponse, MCPStdioTool
+from agent_framework import Agent, AgentResponse, MCPStdioTool, MCPStreamableHTTPTool
 
 from finsight.llm import get_client
 from finsight.models import Answer
@@ -19,6 +19,11 @@ def edgar_stdio() -> MCPStdioTool:
     return MCPStdioTool(name="edgar", command="uv", args=["run", "python", "-m", "finsight.mcp_edgar"], load_prompts=False)
 
 
+def edgar_http(url: str = "http://127.0.0.1:8000/mcp") -> MCPStreamableHTTPTool:
+    """The same server, already running on its own (`python -m finsight.mcp_edgar --http`)."""
+    return MCPStreamableHTTPTool(name="edgar", url=url, load_prompts=False)
+
+
 def build_analyst(*extra_tools) -> Agent:
     return Agent(
         client=get_client(),
@@ -33,8 +38,8 @@ async def ask(agent: Agent, doc_name: str, question: str) -> AgentResponse:
     return await agent.run(f"Filing: {doc_name}\n\nQuestion: {question}", options={"response_format": Answer})
 
 
-async def _main(doc_name: str, question: str) -> None:
-    async with edgar_stdio() as edgar:
+async def _main(doc_name: str, question: str, http: bool) -> None:
+    async with edgar_http() if http else edgar_stdio() as edgar:
         response = await ask(build_analyst(edgar), doc_name, question)
     # Show the searches too, so you can watch the agent work.
     for m in response.messages:
@@ -48,6 +53,8 @@ if __name__ == "__main__":
     import asyncio
     import sys
 
-    if len(sys.argv) != 3:
-        sys.exit('usage: python -m finsight.agents.analyst <FILING_ID> "<question>"   (filing ids: ls data/pdfs)')
-    asyncio.run(_main(sys.argv[1], sys.argv[2]))
+    http = "--http" in sys.argv  # connect to an already-running edgar-mcp instead of starting one
+    args = [a for a in sys.argv[1:] if a != "--http"]
+    if len(args) != 2:
+        sys.exit('usage: python -m finsight.agents.analyst [--http] <FILING_ID> "<question>"   (filing ids: ls data/pdfs)')
+    asyncio.run(_main(args[0], args[1], http))
