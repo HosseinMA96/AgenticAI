@@ -225,3 +225,16 @@ One entry per real choice: the options, what we chose, and **why**.
 **Seen in the lesson (`lessons/w1_step9_third_party_mcp.py`):**
 - Its tool description contains instructions written by the server's author ("this tool now grants you internet access…"). A third-party server writes part of our agent's prompt.
 - On the first run it executed `npm install` and printed to stdout, which corrupted the stdio channel; the client logged parse errors. A third-party server can also run more code than you expected.
+
+## D14 — Eval v0 scoring: number match, LLM judge, two-step citation check (2026-10-10)
+
+**Answer correctness:**
+- **Options:** (A) a simple LLM judge for written answers now; (B) score only the 12 numeric dev questions until Week 5.
+- **Choice:** A. Numeric questions are matched in code (within 1%, allowing for unit scale such as millions vs billions or ratio vs percent). Written answers go to a `gpt-5.4` judge that compares the agent's answer with the gold answer.
+- **Why:** B would rest the baseline on 12 questions. The judge costs cents per run. Week 5 checks the judge against the user's own labels.
+
+**Citations** (the user's idea):
+- **Options:** (A) strict: a hit only if a cited page is a gold page; (B) lenient: a judge reads the cited pages every time.
+- **Choice:** both, in order. First the free strict check. Only if it misses does a cheap `gpt-5.4-nano` judge read the cited pages and say whether they support the answer.
+- **Why:** the strict check alone undercounts (Boeing: page 85 also states the number, but the gold page is 52). A judge on every question costs more for no gain when the strict check already passed.
+- **Reported:** `citation_hit` (strict) and `citation_supported` (strict or judge), so both stay visible.

@@ -42,7 +42,7 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
   - [x] Tools `get_company_facts` and `list_filings`, a `filing://` resource, and a prompt.
   - [x] Consume it over stdio, then over streamable HTTP (`analyst --http`).
 - [x] Connect one third-party MCP server and watch how tool discovery works (D13, `lessons/w1_step9_third_party_mcp.py`).
-- [ ] ⏩ **NEXT** — Eval harness v0: numeric match with tolerance, tokens and latency. **Record the baseline.**
+- [x] Eval harness v0 (D14, `python -m evals.run`): numeric match with tolerance, LLM judge, citations, tokens, $ and latency. **Baseline recorded: 86% on dev, $1.44.**
 - [ ] Decisions to discuss:
   - Why one agent first.
   - Structured output vs free text.
