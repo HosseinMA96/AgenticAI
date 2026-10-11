@@ -302,6 +302,8 @@ These are the "decisions to discuss" from `TODO.md` Week 1. Most were settled wh
 - The retrieval eval compares chunkers one at a time anyway, and only the winner needs to be live for the agent.
 - It keeps full 1024-d quality and all data in one place, at $0. The only cost is one extra upload.
 
+**Update (same day): measured size.** `finsight-page` (5,102 docs) uses **85.1 MB** (63.5 MB vectors), against a 50 MB quota. Vectors take about 3× their raw size (HNSW graph plus stored copies). Search and writes still work, so we deferred shrinking (stored=False, compression). Revisit if the fixed-size upload gets blocked.
+
 ## D19 — Fixed-size chunker: 1024 tokens, 128 overlap (2026-10-11)
 
 **Options** (estimates; pages average about 800 tokens):
@@ -326,3 +328,18 @@ These are the "decisions to discuss" from `TODO.md` Week 1. Most were settled wh
 **Choice:** A.
 
 **Why:** D19's fair comparison needs equal chunk sizes, so count exactly. It also lets us guard the embedding model's 8,191-token input limit.
+
+## D21 — Retrieval metric with several gold pages: report both (2026-10-11)
+
+Some questions need more than one gold page (e.g. Adobe's cash-flow ratio: pages 59 and 63).
+
+**Options:**
+- A. Hit@k: 1 if any gold page is in the top k.
+- B. Recall@k: the fraction of gold pages in the top k.
+- **C. Both, with recall@k as the headline.**
+
+**Choice:** C.
+
+**Why:**
+- Recall@k shows whether the agent gets *all* the evidence, which multi-page questions need.
+- Hit@k comes from the same results at no extra cost. The gap between the two shows how often retrieval finds only part of the evidence.

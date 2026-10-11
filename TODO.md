@@ -61,9 +61,10 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
   - [x] Walkthrough: chunkers, embeddings, hybrid search + reranker, the pipeline.
   - [x] Decisions: Search Free tier (D17), one chunker at a time (D18), fixed-size = 1024 tokens / 128 overlap (D19). Search resource `finsight-search-hma96` created.
   - [x] **Step 1 — embeddings** (📘 `lessons/w2_step1_embeddings.py`): embed a question and a few chunks, print similarity. Break it: an exact number (`598,194`) ranks the wrong page first, which is why we use hybrid search.
-  - [ ] ⏩ **NEXT** — 🏗️ Chunkers + ingestion into `src/finsight/rag/`, with offline tests. Upload one index; check its real size in Azure.
-- [ ] Retrieval eval: recall@k against the gold evidence page, for each chunker.
+  - [x] 🏗️ Chunkers + ingestion into `src/finsight/rag/`, with offline tests. Upload one index; check its real size in Azure.
+- [ ] ⏩ **NEXT** — Retrieval eval: recall@k against the gold evidence page, for each chunker.
   - Decide how to score fixed-size chunks fairly: 91% of them span 2+ pages, so "any page hits" gives them a big head start.
+- [ ] Give the analyst a `search_filings` tool backed by the winning index (hybrid + reranker). Decide whether it replaces or sits beside keyword search. Run a dev eval and compare to the 86% baseline.
 - [ ] Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
 - [ ] Memory:
   - [ ] Thread/session (short-term).
