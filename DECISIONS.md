@@ -208,3 +208,20 @@ One entry per real choice: the options, what we chose, and **why**.
 **Why:**
 - MAF's MCP client tools (`MCPStdioTool`, `MCPStreamableHTTPTool`) need `mcp` anyway, so one package covers both the server and the client side.
 - B's extras aren't needed for a two-tool server. We can switch if the final step needs auth features.
+
+## D13 — Third-party MCP server: the official fetch server (2026-10-10)
+
+**Options:**
+- **A.** `mcp-server-fetch`: the official reference server that reads web pages. Runs locally over stdio.
+- **B.** Microsoft Learn docs MCP: hosted by Microsoft over HTTP, nothing to install.
+
+**Choice:** A, pinned to `mcp-server-fetch==2026.8.18`.
+
+**Why:**
+- It's relevant to FinSight: the agent could read SEC pages or news.
+- It sets up Week 5: fetched web pages are an obvious path for prompt injection.
+- The version is pinned because we run someone else's code, so we decide when it changes.
+
+**Seen in the lesson (`lessons/w1_step9_third_party_mcp.py`):**
+- Its tool description contains instructions written by the server's author ("this tool now grants you internet access…"). A third-party server writes part of our agent's prompt.
+- On the first run it executed `npm install` and printed to stdout, which corrupted the stdio channel; the client logged parse errors. A third-party server can also run more code than you expected.

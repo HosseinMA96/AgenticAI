@@ -41,8 +41,8 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
 - [x] Our own MCP server `edgar-mcp` (FastMCP):
   - [x] Tools `get_company_facts` and `list_filings`, a `filing://` resource, and a prompt.
   - [x] Consume it over stdio, then over streamable HTTP (`analyst --http`).
-- [ ] ⏩ **NEXT** — Connect one third-party MCP server and watch how tool discovery works.
-- [ ] Eval harness v0: numeric match with tolerance, tokens and latency. **Record the baseline.**
+- [x] Connect one third-party MCP server and watch how tool discovery works (D13, `lessons/w1_step9_third_party_mcp.py`).
+- [ ] ⏩ **NEXT** — Eval harness v0: numeric match with tolerance, tokens and latency. **Record the baseline.**
 - [ ] Decisions to discuss:
   - Why one agent first.
   - Structured output vs free text.
