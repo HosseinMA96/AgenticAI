@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from agent_framework import Agent, AgentResponse
+from agent_framework import Agent, AgentResponse, MCPStdioTool
 
 from finsight.llm import get_client
 from finsight.models import Answer
@@ -13,12 +13,18 @@ from finsight.tools.filings import render_page, search_filing_text
 _PROMPT = (Path(__file__).parents[1] / "prompts" / "analyst.md").read_text()
 
 
-def build_analyst() -> Agent:
+def edgar_stdio() -> MCPStdioTool:
+    """Our edgar-mcp server, started as a child process and spoken to over stdin/stdout (book 12.2).
+    Use as `async with edgar_stdio() as edgar:` so the process is stopped afterwards."""
+    return MCPStdioTool(name="edgar", command="uv", args=["run", "python", "-m", "finsight.mcp_edgar"], load_prompts=False)
+
+
+def build_analyst(*extra_tools) -> Agent:
     return Agent(
         client=get_client(),
         name="analyst",
         instructions=_PROMPT,
-        tools=[search_filing_text, render_page, calculator],
+        tools=[search_filing_text, render_page, calculator, *extra_tools],
     )
 
 
@@ -28,7 +34,8 @@ async def ask(agent: Agent, doc_name: str, question: str) -> AgentResponse:
 
 
 async def _main(doc_name: str, question: str) -> None:
-    response = await ask(build_analyst(), doc_name, question)
+    async with edgar_stdio() as edgar:
+        response = await ask(build_analyst(edgar), doc_name, question)
     # Show the searches too, so you can watch the agent work.
     for m in response.messages:
         for c in m.contents:
