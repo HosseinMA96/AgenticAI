@@ -2,7 +2,7 @@
 
 import pytest
 
-from evals.scorers import citation_hit, numbers_match, parse_number
+from evals.scorers import citation_hit, hit_at_k, numbers_match, parse_number, recall_at_k
 
 
 @pytest.mark.parametrize("text, expected", [("$1577.00", 1577.0), ("17.98", 17.98), ("$(3.5)", -3.5), ("-12%", -12.0), ("none", None)])
@@ -68,3 +68,16 @@ def test_retry_on_rate_limit_only(monkeypatch):
     import pytest
     with pytest.raises(ValueError):
         asyncio.run(run.with_retry(broken))  # other errors are not retried
+
+
+def test_retrieval_metrics_with_two_gold_pages():
+    retrieved = [[40], [63], [51], [59]]  # gold 63 at rank 2, gold 59 at rank 4
+    gold = [59, 63]
+    assert hit_at_k(retrieved, gold, 1) == 0.0
+    assert hit_at_k(retrieved, gold, 3) == 1.0
+    assert recall_at_k(retrieved, gold, 3) == 0.5  # only half the evidence
+    assert recall_at_k(retrieved, gold, 5) == 1.0
+
+
+def test_multi_page_chunk_counts_all_its_pages():
+    assert recall_at_k([[62, 63]], [63], 1) == 1.0  # rule A; D22 decides fairness for fixed-size

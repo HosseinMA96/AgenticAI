@@ -28,3 +28,17 @@ def numbers_match(gold: float, got: float | None) -> bool:
 
 def citation_hit(cited: list[int], gold_pages: list[int]) -> bool:
     return bool(set(cited) & set(gold_pages))
+
+
+# Retrieval metrics (D21). `retrieved` is the page list of each result, best first:
+# one page per page chunk, possibly several per fixed-size chunk.
+def hit_at_k(retrieved: list[list[int]], gold_pages: list[int], k: int) -> float:
+    """1.0 if any gold page is among the top k results."""
+    found = {p for pages in retrieved[:k] for p in pages}
+    return float(bool(found & set(gold_pages)))
+
+
+def recall_at_k(retrieved: list[list[int]], gold_pages: list[int], k: int) -> float:
+    """Fraction of gold pages among the top k results."""
+    found = {p for pages in retrieved[:k] for p in pages}
+    return len(found & set(gold_pages)) / len(set(gold_pages))
