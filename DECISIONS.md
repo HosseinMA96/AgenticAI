@@ -271,3 +271,48 @@ These are the "decisions to discuss" from `TODO.md` Week 1. Most were settled wh
 - Numeric accuracy was already 100%, so a check on numbers had nothing left to fix.
 - It costs 46% more and adds about 3s per question, for a gain no bigger than the noise.
 - Lesson: an extra tool is only worth it where the agent is actually failing. Measure before keeping it.
+
+## D17 — Search index: Azure AI Search, Free tier (2026-10-11)
+
+**Options:**
+- **A. Azure AI Search, Free:** $0. 50 MB, 3 indexes, no SLA, can't be upgraded (recreate instead). Hybrid search plus the semantic reranker (free monthly quota).
+- **B. Azure AI Search, Basic:** about $75/month, billed even when idle. Far more room than 28 filings need.
+- **C. Local only** (e.g. LanceDB + BM25): $0 and offline, but no built-in reranker, and it doesn't carry over to the Bcdr work on Azure.
+
+**Choice:** A. Service `finsight-search-hma96` in RG `AgenticAI`, westus3, semantic ranker on the free plan. The root `.env` has `AZURE_SEARCH_ENDPOINT` and `AZURE_SEARCH_API_KEY`.
+
+**Why:**
+- It's free. One index per chunker (2 of the 3 allowed).
+- **Correction (same day):** the "fits in 50 MB" estimate was wrong. Measured: 5,127 pages, ~4.1M tokens. Page chunker ≈ 37 MB (21 MB vectors + 16 MB text); both chunkers ≈ 90 MB. Handled in D18.
+- It's the same service the work project would use.
+
+## D18 — Fitting two chunkers into the Free tier: one at a time (2026-10-11)
+
+**Problem:** measured index sizes are about 37 MB for the page chunker and 55 MB for fixed-size at 512 tokens (which doesn't fit even alone; see D19). The Free tier holds 50 MB.
+
+**Options:**
+- **A. One chunker at a time:** build an index, measure recall@k, delete it, then build the other. Keep the winner.
+- **B. Index only dev filings:** 19 filings and 3,036 pages, still about 54 MB for both chunkers. Doesn't fit on its own.
+- **C. Shrink each chunk:** 512-d vectors (lower quality), or text kept locally with only an ID in Azure (data split across two places).
+- **D. Basic tier:** about $75/month. Already rejected in D17.
+
+**Choice:** A.
+
+**Why:**
+- The retrieval eval compares chunkers one at a time anyway, and only the winner needs to be live for the agent.
+- It keeps full 1024-d quality and all data in one place, at $0. The only cost is one extra upload.
+
+## D19 — Fixed-size chunker: 1024 tokens, 128 overlap (2026-10-11)
+
+**Options** (estimates; pages average about 800 tokens):
+- 256 tokens: about 18k chunks, ~90 MB. Doesn't fit.
+- 512 tokens: about 9k chunks, ~55 MB. Doesn't fit.
+- **A. 1024 tokens, 128 overlap:** about 4.6k chunks, ~36 MB. Fits.
+- B. 512 tokens with 512-d vectors: ~36 MB. Fits, but changes chunk size and vector quality at once.
+
+**Choice:** A.
+
+**Why:**
+- Every chunk carries its own 4 KB vector, so small chunks don't fit the Free tier.
+- 1024 tokens is about one page. Chunk size is then the same for both chunkers, and the experiment isolates *where* they cut (token count vs page edges). B would mix two variables.
+- Verify the real index size in Azure after upload.
