@@ -39,5 +39,21 @@ async def main() -> None:
     print("service_session_id:", session.service_session_id)
     print("session.state keys:", list(session.state))
 
+    print("\n=== with a session, store=False: history kept on our side ===")
+    # store=False tells Azure not to keep the response. With nothing stored
+    # service-side, MAF adds an InMemoryHistoryProvider that keeps the messages
+    # in session.state and re-sends them on every call.
+    local = Agent(
+        client=get_client(), name="analyst", instructions="You are a concise financial analyst.",
+        default_options={"store": False},
+    )
+    session = local.create_session()
+    await local.run(TURN_1, session=session)
+    r = await local.run(TURN_2, session=session)
+    print(f"turn 2: {r.text!r}  (input tokens: {tokens_in(r)})\n")
+    print("service_session_id:", session.service_session_id)
+    for key, value in session.state.items():
+        print(f"session.state[{key!r}]:", value if not isinstance(value, dict) else {k: type(v).__name__ for k, v in value.items()})
+
 
 asyncio.run(main())
