@@ -401,3 +401,19 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Choice:** C. The default is hybrid + reranker until measured.
 
 **Why:** the retrieval eval used raw FinanceBench questions as queries. The agent writes clean 10-K-style queries, where keyword matching should help more, so only an agent run can decide. Costs two dev runs (~$3).
+
+**Result (same day), two dev runs per mode:**
+
+| mode | run 1 | run 2 | average | $ avg |
+|---|---|---|---|---|
+| baseline (keyword tool, week 1) | 86% | – | – | 1.44 |
+| hybrid + reranker | 95% | 88% | 91.5% | 1.02 |
+| vector only | 93% | 93% | 93% | 0.96 |
+
+**Choice:** vector only is the default (`config.SEARCH_MODE`). It stays a setting, so `--search-mode` can retest any mode later.
+
+**Why:**
+- Every run beats the 86% baseline, so the new search clearly helps (written answers 80% → ~90%; numeric was already 100%). Cost fell about a third.
+- Neither mode clearly wins. The one-question gap in run 1 reversed in run 2 (D15 noise).
+- Vector was at least as accurate on average and more consistent (same 3 failures both runs). It's slightly cheaper and uses none of the reranker's ~1,000 free calls/month, which later weeks' evals need.
+- The "if tied, take hybrid for exact strings" plan was dropped: these questions didn't show an exact-string benefit. Revisit if failures show exact-number lookups being missed.

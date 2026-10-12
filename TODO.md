@@ -64,8 +64,8 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
   - [x] 🏗️ Chunkers + ingestion into `src/finsight/rag/`, with offline tests. Upload one index; check its real size in Azure.
 - [x] Retrieval eval: recall@k against the gold evidence page, for each chunker (`python -m evals.retrieval`, `evals/retrieval.md`). Page wins: recall@5 63% vs 43% (D21–D23).
   - [x] Decide how to score fixed-size chunks fairly: 91% of them span 2+ pages, so "any page hits" gives them a big head start.
-- [ ] ⏩ **NEXT** — Give the analyst a `search_filings` tool backed by the winning index (hybrid + reranker). Decide whether it replaces or sits beside keyword search. Run a dev eval and compare to the 86% baseline.
-- [ ] Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
+- [x] Give the analyst a `search_filings` tool backed by the winning index (search mode settled in D25: vector). Decide whether it replaces or sits beside keyword search. Run a dev eval and compare to the 86% baseline. Result: 93% (vector, 2 runs) vs 86%, about a third cheaper (D24, D25).
+- [ ] ⏩ **NEXT** — Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
 - [ ] Memory:
   - [ ] Thread/session (short-term).
   - [ ] RAG (long-term).
