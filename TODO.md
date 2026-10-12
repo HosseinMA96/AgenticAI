@@ -6,6 +6,8 @@ Don't advance past a ✅ acceptance check until it has really been run.
 
 ## Week 1: one strong agent, tools, MCP, eval baseline
 Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
+**Hands-on from Week 2 Memory onwards:** the user writes the core pieces; Claude explains, reviews and writes only scaffolding and tests.
+
 **How steps work (D3):** 📘 **Lesson** = a tiny sandbox script in `lessons/` to understand one idea. 🏗️ **Product** = right after, move what we learned into the real app in `src/finsight/`. Experiment-only steps have no product part. The user knows the book, so lessons are hands-on and point to the book section rather than re-teach the theory.
 
 - [x] The agent loop and tools:
@@ -54,6 +56,7 @@ Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
   - [x] 10-question check: 10/10 correct, but MCP was never called (the agent chose not to).
   - [x] Cross-check prompt variant (`analyst_crosscheck.md`): MCP used on 32/42, accuracy 88% vs 86% (noise), cost +46%. Not adopted (D16).
 - [x] Reflect (NOTES.md): tool vs MCP tool vs agent-as-tool. Why build the eval before tuning the prompt?
+- [x] Defend it (no notes): answer the Week 1 questions in `INTERVIEW.md` out loud or in `NOTES.md`; Claude points out gaps.
 
 ## Week 2: RAG, multimodal evidence, memory types
 Book: 4.7–4.8, 4.12, 5.3, Ch 14
@@ -65,8 +68,9 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
 - [x] Retrieval eval: recall@k against the gold evidence page, for each chunker (`python -m evals.retrieval`, `evals/retrieval.md`). Page wins: recall@5 63% vs 43% (D21–D23).
   - [x] Decide how to score fixed-size chunks fairly: 91% of them span 2+ pages, so "any page hits" gives them a big head start.
 - [x] Give the analyst a `search_filings` tool backed by the winning index (search mode settled in D25: vector). Decide whether it replaces or sits beside keyword search. Run a dev eval and compare to the 86% baseline. Result: 93% (vector, 2 runs) vs 86%, about a third cheaper (D24, D25).
-- [ ] ⏩ **NEXT** — Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
-- [ ] Memory:
+- [x] Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
+  - Lesson `w2_step2_page_image.py`, switch `PAGE_FORMAT`. Images 88% vs text 93% (numeric 92% vs 100%). Text stays the default (D26).
+- [ ] ⏩ **NEXT** — Memory:
   - [ ] Thread/session (short-term).
   - [ ] RAG (long-term).
   - [ ] Memory-as-tool notes.
@@ -81,6 +85,7 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
   - Where memory is stored.
 - [ ] ✅ Dev accuracy beats the week-1 baseline. Recall@5 is reported for both chunkers.
 - [ ] Reflect: when does memory hurt?
+- [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Answer out loud or in `NOTES.md`; Claude points out gaps.
 
 ## Week 3: orchestrations, workflow, terminations, approvals
 Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
@@ -103,6 +108,7 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - Shared state vs messages.
 - [ ] ✅ Comparison table of patterns × {accuracy, tokens, $, latency, turns}. A demo of an approval surviving a restart.
 - [ ] Reflect: which pattern won and why? When is one agent enough?
+- [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Answer out loud or in `NOTES.md`; Claude points out gaps.
 
 ## Week 4: observability, hooks, cost, compaction, debugging
 Book: 3.4, 4.9–4.10, 4.12, 9.2.3, 11.3
@@ -123,6 +129,7 @@ Book: 3.4, 4.9–4.10, 4.12, 9.2.3, 11.3
   - What each compaction strategy saves vs what it loses.
   - Root cause vs symptom.
 - [ ] ✅ One full trace with per-agent cost, a compaction table, and a failure-analysis table.
+- [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Answer out loud or in `NOTES.md`; Claude points out gaps.
 
 ## Week 5: evaluation in depth, optimization, testing, Responsible AI
 Book: Ch 10, 11, 13, 12.3
@@ -151,6 +158,13 @@ Book: Ch 10, 11, 13, 12.3
   - Defense-in-depth.
   - When to stop optimizing.
 - [ ] ✅ Run the held-out **test** set once (the user OKs it). Final report: accuracy, $/question, p50/p95 latency, best configuration.
+- [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Answer out loud or in `NOTES.md`; Claude points out gaps.
+
+## Project review (end of week 5)
+- [ ] Explain the whole system on a whiteboard from memory: data → index → search → agents → verifier → eval. No notes.
+- [ ] Mock interview: answer the questions in `INTERVIEW.md` without notes. Claude grades the answers against `DECISIONS.md`.
+  - Claude adds new questions to `INTERVIEW.md` at the end of each week.
+- [ ] Write a one-page summary in your own words: what you built, 3 decisions you'd defend, 2 you'd change, and the numbers that back them.
 
 ## Final step (optional): polished public showcase on Azure
 Book: Ch 3, Ch 8, 9.2.8, 12.4

@@ -432,3 +432,18 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Choice:** B. The default stays `text` until measured.
 
 **Why:** it's the cheapest real measurement (CLAUDE.md: numbers, not arguments). It can still show harm (prose read from images) or a cost change. It carries over to Bcdr evidence, which may be scanned. The tool description is unchanged in image mode, so only the format differs.
+
+**Result (same day), one dev run with images:**
+
+| page format | accuracy | numeric | written | $ | p50 s |
+|---|---|---|---|---|---|
+| text (2 runs) | 93%, 93% | 100% | 90% | 0.96 | 6 |
+| image | 88% | 92% | 87% | 0.95 | 8 |
+
+**Final choice:** keep `PAGE_FORMAT = "text"`. Images stay available on demand through `render_page`.
+
+**Why:**
+- Images were worse, mostly on numbers: 3 questions that text got right in both runs failed. CVS fixed-asset turnover came out 17.47 vs gold 17.98, and Verizon's quick ratio 0.49 vs about 0.54, which look like misread figures at 100 DPI.
+- Cost was about equal (more input tokens, but more of them cached), and answers were slower.
+- One run, so noisy, but the new failures were all stable passes with text.
+- Not tested: a higher DPI. Revisit for scanned evidence (Bcdr), where no text layer exists.
