@@ -4,7 +4,7 @@ from pathlib import Path
 
 from agent_framework import Agent, AgentResponse, MCPStdioTool, MCPStreamableHTTPTool
 
-from finsight.config import SEARCH_MODE
+from finsight.config import PAGE_FORMAT, SEARCH_MODE
 from finsight.llm import get_client
 from finsight.models import Answer
 from finsight.rag.search import Mode
@@ -27,13 +27,15 @@ def edgar_http(url: str = "http://127.0.0.1:8000/mcp") -> MCPStreamableHTTPTool:
     return MCPStreamableHTTPTool(name="edgar", url=url, load_prompts=False)
 
 
-def build_analyst(*extra_tools, prompt: str = "analyst", search_mode: Mode = SEARCH_MODE) -> Agent:
+def build_analyst(
+    *extra_tools, prompt: str = "analyst", search_mode: Mode = SEARCH_MODE, page_format: str = PAGE_FORMAT
+) -> Agent:
     """prompt: a file name in prompts/ without .md; search_mode: see D25. Both let eval configs swap one thing."""
     return Agent(
         client=get_client(),
         name="analyst",
         instructions=(_PROMPTS / f"{prompt}.md").read_text(),
-        tools=[make_search_filings(search_mode), render_page, calculator, *extra_tools],
+        tools=[make_search_filings(search_mode, page_format), render_page, calculator, *extra_tools],
     )
 
 

@@ -417,3 +417,18 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - Neither mode clearly wins. The one-question gap in run 1 reversed in run 2 (D15 noise).
 - Vector was at least as accurate on average and more consistent (same 3 failures both runs). It's slightly cheaper and uses none of the reranker's ~1,000 free calls/month, which later weeks' evals need.
 - The "if tied, take hybrid for exact strings" plan was dropped: these questions didn't show an exact-string benefit. Revisit if failures show exact-number lookups being missed.
+
+## D26 — Multimodal: a page-format switch plus one eval (2026-10-11)
+
+**Evidence first:**
+- Lesson w2_step2: text and image both answered correctly on Adobe's cash-flow page and its 8-column equity table. Text kept the "—" placeholders, so columns stayed countable. Tokens were about equal (the image was cheaper on the cash-flow page).
+- The 3 dev questions that vector mode failed in both runs are 2 judgement calls (which metric) and 1 sign convention. None is a table-reading error, and numeric accuracy is already 100%.
+
+**Options:**
+- A. Full build: detect table pages and always attach images. Most work, for a problem our data doesn't show.
+- **B. A switch, `config.PAGE_FORMAT` = text | image (`evals.run --page-format`), plus one dev run with images.**
+- C. Skip and keep `render_page` on demand. Free, but the comparison is never measured.
+
+**Choice:** B. The default stays `text` until measured.
+
+**Why:** it's the cheapest real measurement (CLAUDE.md: numbers, not arguments). It can still show harm (prose read from images) or a cost change. It carries over to Bcdr evidence, which may be scanned. The tool description is unchanged in image mode, so only the format differs.

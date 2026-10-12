@@ -18,3 +18,5 @@ MAX_DURATION_SECONDS = 60.0  # wall-clock budget for the tool loop
 # retrieval eval, because the agent writes cleaner queries than the raw questions.
 SEARCH_MODE = "vector"  # or "hybrid+rerank", "hybrid", "keyword"; try others with evals.run --search-mode
 SEARCH_TOP = 3  # pages per call, same as the week-1 keyword tool
+# How search_filings returns each page: extracted text, or a page image (D26).
+PAGE_FORMAT = "text"  # or "image"

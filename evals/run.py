@@ -21,7 +21,7 @@ from agent_framework import Agent
 from evals.judge import judge_answer, judge_citation
 from evals.scorers import citation_hit, numbers_match, parse_number
 from finsight.agents.analyst import ask, build_analyst, edgar_stdio
-from finsight.config import CHEAP_MODEL, MAIN_MODEL, SEARCH_MODE
+from finsight.config import CHEAP_MODEL, MAIN_MODEL, PAGE_FORMAT, SEARCH_MODE
 from finsight.dataset import SPLITS
 from finsight.limits import count_tool_calls, limit_hit
 from finsight.pricing import cost_usd
@@ -134,7 +134,7 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
-async def main(split: str, limit: int | None, config: str, prompt: str, search_mode: str) -> None:
+async def main(split: str, limit: int | None, config: str, prompt: str, search_mode: str, page_format: str) -> None:
     if split != "dev":
         # CLAUDE.md: test runs only at the end of week 5, with the user's explicit OK each time.
         if input(f"Run the held-out '{split}' split? Type yes: ") != "yes":
@@ -142,7 +142,7 @@ async def main(split: str, limit: int | None, config: str, prompt: str, search_m
     rows = [json.loads(l) for l in (SPLITS / f"{split}.jsonl").read_text().splitlines()][:limit]
     sem = asyncio.Semaphore(CONCURRENCY)
     async with edgar_stdio() as edgar:
-        agent = build_analyst(edgar, prompt=prompt, search_mode=search_mode)
+        agent = build_analyst(edgar, prompt=prompt, search_mode=search_mode, page_format=page_format)
 
         async def bounded(row: dict) -> dict:
             async with sem:
@@ -156,7 +156,7 @@ async def main(split: str, limit: int | None, config: str, prompt: str, search_m
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     (EVALS / "results").mkdir(exist_ok=True)
     out_file = EVALS / "results" / f"{stamp}_{config}.json"
-    out_file.write_text(json.dumps({"config": config, "prompt": prompt, "search_mode": search_mode, "split": split, "summary": summary, "rows": results}, indent=1))
+    out_file.write_text(json.dumps({"config": config, "prompt": prompt, "search_mode": search_mode, "page_format": page_format, "split": split, "summary": summary, "rows": results}, indent=1))
 
     board = EVALS / "leaderboard.md"
     if not board.exists():
@@ -185,5 +185,6 @@ if __name__ == "__main__":
     p.add_argument("--config", default="baseline")
     p.add_argument("--prompt", default="analyst", help="system prompt file in src/finsight/prompts/, without .md")
     p.add_argument("--search-mode", default=SEARCH_MODE, choices=MODES, help="search_filings mode (D25)")
+    p.add_argument("--page-format", default=PAGE_FORMAT, choices=["text", "image"], help="pages as text or images (D26)")
     a = p.parse_args()
-    asyncio.run(main(a.split, a.limit, a.config, a.prompt, a.search_mode))
+    asyncio.run(main(a.split, a.limit, a.config, a.prompt, a.search_mode, a.page_format))
