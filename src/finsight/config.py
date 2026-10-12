@@ -13,3 +13,8 @@ CHEAP_MODEL = "gpt-5.4-nano"  # routing, extraction
 MAX_ITERATIONS = 10  # model round-trips (one can request several tools)
 MAX_FUNCTION_CALLS = 20  # total tool runs
 MAX_DURATION_SECONDS = 60.0  # wall-clock budget for the tool loop
+
+# search_filings (D24, D25). Mode is measured on the agent, not picked from the
+# retrieval eval, because the agent writes cleaner queries than the raw questions.
+SEARCH_MODE = "hybrid+rerank"  # or "vector", "hybrid", "keyword"
+SEARCH_TOP = 3  # pages per call, same as the week-1 keyword tool

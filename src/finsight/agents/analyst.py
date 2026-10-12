@@ -1,13 +1,16 @@
-"""The first FinSight agent: one analyst with search, page-image and calculator tools (D10)."""
+"""The first FinSight agent: one analyst with search, page-image and calculator tools (D10, D24)."""
 
 from pathlib import Path
 
 from agent_framework import Agent, AgentResponse, MCPStdioTool, MCPStreamableHTTPTool
 
+from finsight.config import SEARCH_MODE
 from finsight.llm import get_client
 from finsight.models import Answer
+from finsight.rag.search import Mode
 from finsight.tools.calculator import calculator
-from finsight.tools.filings import render_page, search_filing_text
+from finsight.tools.filings import render_page
+from finsight.tools.search_filings import make_search_filings
 
 # Prompts live in .md files so a prompt change shows up as a diff (CLAUDE.md).
 _PROMPTS = Path(__file__).parents[1] / "prompts"
@@ -24,13 +27,13 @@ def edgar_http(url: str = "http://127.0.0.1:8000/mcp") -> MCPStreamableHTTPTool:
     return MCPStreamableHTTPTool(name="edgar", url=url, load_prompts=False)
 
 
-def build_analyst(*extra_tools, prompt: str = "analyst") -> Agent:
-    """prompt: a file name in prompts/ without .md, so eval configs can swap prompts."""
+def build_analyst(*extra_tools, prompt: str = "analyst", search_mode: Mode = SEARCH_MODE) -> Agent:
+    """prompt: a file name in prompts/ without .md; search_mode: see D25. Both let eval configs swap one thing."""
     return Agent(
         client=get_client(),
         name="analyst",
         instructions=(_PROMPTS / f"{prompt}.md").read_text(),
-        tools=[search_filing_text, render_page, calculator, *extra_tools],
+        tools=[make_search_filings(search_mode), render_page, calculator, *extra_tools],
     )
 
 

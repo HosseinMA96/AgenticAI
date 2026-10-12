@@ -377,3 +377,27 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - Fixed-size cuts financial-statement tables in half and mixes each half with a neighbouring page's text. Those chunks stop looking like the statement and drop out of the top 5 (e.g. Adobe cash-flow: neither gold page appeared). Fixed-size lost on 6 of 12 metrics questions.
 - Search is deterministic, so a single run is enough here (unlike agent evals, D15).
 - The prediction beforehand was "page wins by at most 5 points". The direction was right; the size was badly underestimated.
+
+## D24 — `search_filings` replaces the keyword tool (2026-10-11)
+
+**Options:**
+- **A. Replace** `search_filing_text` with `search_filings` (Azure AI Search).
+- B. Keep both and let the agent choose.
+
+**Choice:** A.
+
+**Why:**
+- One change at a time against the 86% baseline, so any accuracy change has one cause.
+- Hybrid search already contains a keyword (BM25) half.
+- An extra tool isn't free: it brings choice confusion and more calls (D16). Add the old tool back only if the eval shows questions that need it.
+
+## D25 — search_filings mode: a setting, measured on the agent (2026-10-11)
+
+**Options:**
+- A. Hybrid + reranker: best on paper, and it keeps exact-string matching. But the free reranker quota is ~1,000 calls/month (~130 per dev run).
+- B. Vector only: tied with A in the retrieval eval (63% vs 62%), no quota, but weak on exact strings.
+- **C. Make it a setting (`config.SEARCH_MODE`, `evals.run --search-mode`) and run the agent eval with both.**
+
+**Choice:** C. The default is hybrid + reranker until measured.
+
+**Why:** the retrieval eval used raw FinanceBench questions as queries. The agent writes clean 10-K-style queries, where keyword matching should help more, so only an agent run can decide. Costs two dev runs (~$3).
