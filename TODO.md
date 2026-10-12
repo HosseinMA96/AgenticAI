@@ -6,7 +6,7 @@ Don't advance past a ✅ acceptance check until it has really been run.
 
 ## Week 1: one strong agent, tools, MCP, eval baseline
 Book: Ch 1, 4.1–4.6, 4.11, 10.2, 12.2, 15.3
-**Hands-on from Week 2 Memory onwards:** the user writes the core pieces; Claude explains, reviews and writes only scaffolding and tests.
+**Working mode (from Week 2 Memory onwards):** Claude writes the code and explains the important lines. The user reviews it and asks questions. Understanding is checked through occasional review questions along the way and the "Defend it" interview questions at the end of each week (`INTERVIEW.md`).
 
 **How steps work (D3):** 📘 **Lesson** = a tiny sandbox script in `lessons/` to understand one idea. 🏗️ **Product** = right after, move what we learned into the real app in `src/finsight/`. Experiment-only steps have no product part. The user knows the book, so lessons are hands-on and point to the book section rather than re-teach the theory.
 
