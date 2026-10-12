@@ -304,6 +304,8 @@ These are the "decisions to discuss" from `TODO.md` Week 1. Most were settled wh
 
 **Update (same day): measured size.** `finsight-page` (5,102 docs) uses **85.1 MB** (63.5 MB vectors), against a 50 MB quota. Vectors take about 3× their raw size (HNSW graph plus stored copies). Search and writes still work, so we deferred shrinking (stored=False, compression). Revisit if the fixed-size upload gets blocked.
 
+**Update (same day): the quota is enforced, with a lag.** Re-uploading `finsight-page` after deleting `finsight-fixed` was rejected ("Storage quota has been exceeded") for a few minutes, even though the public counters already showed 0 MB, then went through on a retry. The index is over quota and works today, but any rebuild depends on that lag. If a rebuild fails for good, shrink the index (stored=False, vector compression).
+
 ## D19 — Fixed-size chunker: 1024 tokens, 128 overlap (2026-10-11)
 
 **Options** (estimates; pages average about 800 tokens):
@@ -356,3 +358,22 @@ Some questions need more than one gold page (e.g. Adobe's cash-flow ratio: pages
 **Choice:** C. Chunks carry a `main_page` field.
 
 **Why:** the headline is fair (one page per chunk for both chunkers). The gap between B and A measures the bias instead of hiding it.
+
+## D23 — Chunker winner: page (2026-10-11)
+
+**Measured** (dev, 42 questions, raw question as query; `evals/retrieval.md`):
+
+| recall@5 | page | fixed (main page) | fixed (any page) |
+|---|---|---|---|
+| vector | 63% | 43% | 54% |
+| hybrid + reranker | 62% | 40% | 50% |
+
+Per question (vector): page better on 14, fixed on 4, tie on 24.
+
+**Choice:** page chunker. Keep `finsight-page`; delete `finsight-fixed` (its vectors stay cached).
+
+**Why:**
+- It's about 20 points better, and still about 10 better when fixed-size gets credit for every page it touches.
+- Fixed-size cuts financial-statement tables in half and mixes each half with a neighbouring page's text. Those chunks stop looking like the statement and drop out of the top 5 (e.g. Adobe cash-flow: neither gold page appeared). Fixed-size lost on 6 of 12 metrics questions.
+- Search is deterministic, so a single run is enough here (unlike agent evals, D15).
+- The prediction beforehand was "page wins by at most 5 points". The direction was right; the size was badly underestimated.
