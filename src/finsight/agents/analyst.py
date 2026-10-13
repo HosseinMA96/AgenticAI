@@ -6,6 +6,7 @@ from agent_framework import Agent, AgentResponse, MCPStdioTool, MCPStreamableHTT
 
 from finsight.config import PAGE_FORMAT, SEARCH_MODE
 from finsight.llm import AGENT_DEFAULTS, get_client
+from finsight.memory.episodes import EpisodeStore, EpisodicMemory
 from finsight.models import Answer
 from finsight.rag.search import Mode
 from finsight.tools.calculator import calculator
@@ -28,15 +29,18 @@ def edgar_http(url: str = "http://127.0.0.1:8000/mcp") -> MCPStreamableHTTPTool:
 
 
 def build_analyst(
-    *extra_tools, prompt: str = "analyst", search_mode: Mode = SEARCH_MODE, page_format: str = PAGE_FORMAT
+    *extra_tools, prompt: str = "analyst", search_mode: Mode = SEARCH_MODE, page_format: str = PAGE_FORMAT,
+    memory: EpisodeStore | None = None,
 ) -> Agent:
-    """prompt: a file name in prompts/ without .md; search_mode: see D25. Both let eval configs swap one thing."""
+    """prompt: a file name in prompts/ without .md; search_mode: see D25. Both let eval configs swap one thing.
+    memory: an episode store to inject past Q→A for the same company (D29); None = no episodic memory."""
     return Agent(
         client=get_client(),
         name="analyst",
         instructions=(_PROMPTS / f"{prompt}.md").read_text(),
         tools=[make_search_filings(search_mode, page_format), render_page, calculator, *extra_tools],
         default_options=AGENT_DEFAULTS,
+        context_providers=[EpisodicMemory(memory)] if memory is not None else None,
     )
 
 

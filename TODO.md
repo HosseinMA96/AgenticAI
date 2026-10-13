@@ -70,12 +70,12 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
 - [x] Give the analyst a `search_filings` tool backed by the winning index (search mode settled in D25: vector). Decide whether it replaces or sits beside keyword search. Run a dev eval and compare to the 86% baseline. Result: 93% (vector, 2 runs) vs 86%, about a third cheaper (D24, D25).
 - [x] Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
   - Lesson `w2_step2_page_image.py`, switch `PAGE_FORMAT`. Images 88% vs text 93% (numeric 92% vs 100%). Text stays the default (D26).
-- [ ] ⏩ **NEXT** — Memory:
+- [x] Memory:
   - [x] Thread/session (short-term). Lesson `w2_step3_session.py`: default history is stored service-side in Azure; switched all agents to `store=False` (D27).
   - [x] RAG (long-term). Already built: the filings index in Azure AI Search, pulled in on demand via `search_filings` (D17–D25).
   - [x] Memory-as-tool notes (D28). Lesson `w2_step4_notes.py`: with no outside signal the agent saves nothing. Told it was wrong (by a bad gold label), it invented a false excuse and saved it as a note.
-  - [ ] Episodic `ContextProvider`.
-- [ ] Break it: poison a memory note and watch a wrong answer come out. Then add a defense.
+  - [x] Episodic `ContextProvider` (D29). `memory/episodes.py`, lesson `w2_step5_episodes.py`; evals use `--memory` with a fresh empty store.
+- [ ] ⏩ **NEXT** — Break it: poison a memory note and watch a wrong answer come out. Then add a defense.
 - [ ] Decisions to discuss:
   - Chunking strategy.
   - Vector vs keyword vs hybrid search, and what the reranker does.

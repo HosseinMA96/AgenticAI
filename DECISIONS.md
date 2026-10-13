@@ -483,3 +483,18 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - Without feedback, the agent saved no notes. It can't see its own convention errors, so it has nothing to learn.
 - With grader feedback ("wrong, gold is −14.76%"), it saved a note claiming Boeing's tax table has reversed signs. **That claim is false.** −743 ÷ −5,033 = +14.76%, which matches the table's 14.7%. The FinanceBench gold has the sign flipped.
 - So the agent rationalised a bad label instead of pushing back. Writing feedback into memory poisons it whenever the grader is wrong. A note should need evidence (page and numbers), not just a verdict. Defence: Week 2 "Break it".
+
+## D29 — Episodic memory: same-company recent episodes via a ContextProvider (2026-10-13)
+
+**Options:**
+- **A. Same-company recent episodes.** After each run, save `{company, question, answer, pages}`. Before each run, inject the last N for that company.
+- B. Similar-question episodes: the same, but ranked by question embedding (one embedding call per run).
+- C. MAF's `MemoryContextProvider`: an LLM extracts facts each turn (experimental, extra LLM call, black box).
+
+**Choice:** A.
+
+**Why:**
+- With 12 companies, a company tag is enough. Every injected line is visible, which the poisoning experiment needs.
+- It reuses the notes idea, with the difference that our code reads memory instead of the model choosing to.
+- Bcdr carry-over: "show the reviewer's past comments on this same app".
+- **Evals start with an empty store.** Otherwise later dev questions see earlier answers (leakage and poisoning). `evals.run --memory` builds a fresh in-memory store on every run.
