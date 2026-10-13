@@ -478,3 +478,8 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - Free and simple, and every note is visible in one file, which the poisoning experiment needs.
 - Local disk isn't durable in the cloud (Container Apps restart and scale out), so the interface keeps the agent independent of storage: Cosmos DB later is one new class.
 - 12 companies don't need vector search; a company tag is enough.
+
+**Result (lesson w2_step4, 2026-10-13):**
+- Without feedback, the agent saved no notes. It can't see its own convention errors, so it has nothing to learn.
+- With grader feedback ("wrong, gold is −14.76%"), it saved a note claiming Boeing's tax table has reversed signs. **That claim is false.** −743 ÷ −5,033 = +14.76%, which matches the table's 14.7%. The FinanceBench gold has the sign flipped.
+- So the agent rationalised a bad label instead of pushing back. Writing feedback into memory poisons it whenever the grader is wrong. A note should need evidence (page and numbers), not just a verdict. Defence: Week 2 "Break it".

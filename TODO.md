@@ -73,7 +73,7 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
 - [ ] ⏩ **NEXT** — Memory:
   - [x] Thread/session (short-term). Lesson `w2_step3_session.py`: default history is stored service-side in Azure; switched all agents to `store=False` (D27).
   - [x] RAG (long-term). Already built: the filings index in Azure AI Search, pulled in on demand via `search_filings` (D17–D25).
-  - [ ] Memory-as-tool notes.
+  - [x] Memory-as-tool notes (D28). Lesson `w2_step4_notes.py`: with no outside signal the agent saves nothing. Told it was wrong (by a bad gold label), it invented a false excuse and saved it as a note.
   - [ ] Episodic `ContextProvider`.
 - [ ] Break it: poison a memory note and watch a wrong answer come out. Then add a defense.
 - [ ] Decisions to discuss:
