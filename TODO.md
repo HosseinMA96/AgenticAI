@@ -71,7 +71,7 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
 - [x] Multimodal: send the page image (instead of extracted text) for table/chart pages. Compare accuracy on table questions both ways.
   - Lesson `w2_step2_page_image.py`, switch `PAGE_FORMAT`. Images 88% vs text 93% (numeric 92% vs 100%). Text stays the default (D26).
 - [ ] ⏩ **NEXT** — Memory:
-  - [ ] Thread/session (short-term).
+  - [x] Thread/session (short-term). Lesson `w2_step3_session.py`: default history is stored service-side in Azure; switched all agents to `store=False` (D27).
   - [ ] RAG (long-term).
   - [ ] Memory-as-tool notes.
   - [ ] Episodic `ContextProvider`.

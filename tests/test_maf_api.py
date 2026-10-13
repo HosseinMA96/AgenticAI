@@ -30,3 +30,14 @@ def test_structured_output_surface():
 
 def test_function_content_helpers():
     assert callable(Content.from_function_call) and callable(Content.from_function_result)
+
+
+def test_agents_do_not_store_responses_in_azure(monkeypatch):
+    # D27: every agent FinSight builds sends store=False. Fake env, no network.
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://x.openai.azure.com")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "x")
+    from evals.judge import _judge
+    from finsight.agents.analyst import build_analyst
+
+    assert build_analyst().default_options["store"] is False
+    assert _judge("gpt-5.4-nano", "judge_answer.md").default_options["store"] is False

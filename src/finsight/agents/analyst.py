@@ -5,7 +5,7 @@ from pathlib import Path
 from agent_framework import Agent, AgentResponse, MCPStdioTool, MCPStreamableHTTPTool
 
 from finsight.config import PAGE_FORMAT, SEARCH_MODE
-from finsight.llm import get_client
+from finsight.llm import AGENT_DEFAULTS, get_client
 from finsight.models import Answer
 from finsight.rag.search import Mode
 from finsight.tools.calculator import calculator
@@ -36,6 +36,7 @@ def build_analyst(
         name="analyst",
         instructions=(_PROMPTS / f"{prompt}.md").read_text(),
         tools=[make_search_filings(search_mode, page_format), render_page, calculator, *extra_tools],
+        default_options=AGENT_DEFAULTS,
     )
 
 

@@ -6,7 +6,7 @@ from agent_framework import Agent
 from pydantic import BaseModel, Field
 
 from finsight.config import CHEAP_MODEL, MAIN_MODEL
-from finsight.llm import get_client
+from finsight.llm import AGENT_DEFAULTS, get_client
 
 _PROMPTS = Path(__file__).parents[1] / "src" / "finsight" / "prompts"
 
@@ -17,7 +17,7 @@ class Verdict(BaseModel):
 
 
 def _judge(model: str, prompt_file: str) -> Agent:
-    return Agent(client=get_client(model), name=prompt_file, instructions=(_PROMPTS / prompt_file).read_text())
+    return Agent(client=get_client(model), name=prompt_file, instructions=(_PROMPTS / prompt_file).read_text(), default_options=AGENT_DEFAULTS)
 
 
 answer_judge = _judge(MAIN_MODEL, "judge_answer.md")

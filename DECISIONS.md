@@ -447,3 +447,20 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - Cost was about equal (more input tokens, but more of them cached), and answers were slower.
 - One run, so noisy, but the new failures were all stable passes with text.
 - Not tested: a higher DPI. Revisit for scanned evidence (Bcdr), where no text layer exists.
+
+## D27 — Agents don't store responses in Azure: `store=False` (2026-10-12)
+
+**Found in lesson w2_step3:** by default our client uses the Responses API with `store=True`. A session holds only an Azure ID (`resp_…`), and Azure keeps the conversation. With `store=False`, MAF keeps the messages in `session.state` instead. Input tokens are the same either way (87 vs 87): the model re-reads history regardless.
+
+**Options:**
+- A. Keep the default: nothing to change, but responses are retained in Azure and history can't be trimmed by us.
+- **B. `store=False` for all agents** (`llm.AGENT_DEFAULTS`).
+- C. `store=False` only for evals.
+
+**Choice:** B.
+
+**Why:**
+- Week 4 compaction needs the history on our side, because we can't trim a conversation Azure holds.
+- Local history can be printed exactly as the model saw it, which the debugging lessons rely on.
+- Same token cost. (Data-retention policy for Bcdr evidence is the work team's call, not a reason assumed here.)
+- Responses stored by earlier runs stay in Azure until they expire.

@@ -21,6 +21,11 @@ from finsight.config import (
 _ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 
 
+# Every agent gets these. store=False: Azure keeps no copy of responses, and
+# session history lives on our side where we can inspect and trim it (D27).
+AGENT_DEFAULTS = {"store": False}
+
+
 def get_client(model: str = MAIN_MODEL) -> OpenAIChatClient:
     load_dotenv(_ROOT_ENV)
     # No api_version: the Responses API uses Azure's versionless /openai/v1/ endpoint (D2).
