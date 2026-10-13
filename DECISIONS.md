@@ -464,3 +464,17 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - Local history can be printed exactly as the model saw it, which the debugging lessons rely on.
 - Same token cost. (Data-retention policy for Bcdr evidence is the work team's call, not a reason assumed here.)
 - Responses stored by earlier runs stay in Azure until they expire.
+
+## D28 — Memory-as-tool notes: a JSON file behind a `NotesStore` interface (2026-10-12)
+
+**Options:**
+- **A. JSON file behind a small `NotesStore` interface;** swap to Cosmos DB at deploy.
+- B. Cosmos DB now (free tier).
+- C. MAF's built-in memory providers (`FileMemoryProvider` is session-scoped; `MemoryContextProvider` extracts automatically, so it's episodic, not on-demand; both experimental).
+
+**Choice:** A. Notes are tagged by company; `read_notes(company)` returns that company's notes.
+
+**Why:**
+- Free and simple, and every note is visible in one file, which the poisoning experiment needs.
+- Local disk isn't durable in the cloud (Container Apps restart and scale out), so the interface keeps the agent independent of storage: Cosmos DB later is one new class.
+- 12 companies don't need vector search; a company tag is enough.
