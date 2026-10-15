@@ -2,9 +2,10 @@
 
 from pathlib import Path
 
-from agent_framework import Agent, AgentResponse, MCPStdioTool, MCPStreamableHTTPTool
+from agent_framework import Agent, AgentResponse, MCPStdioTool, MCPStreamableHTTPTool, add_usage_details
 
 from finsight.config import PAGE_FORMAT, SEARCH_MODE
+from finsight.evidence import unread_citations
 from finsight.llm import AGENT_DEFAULTS, get_client
 from finsight.memory.episodes import EpisodeStore, EpisodicMemory
 from finsight.models import Answer
@@ -45,8 +46,23 @@ def build_analyst(
 
 
 async def ask(agent: Agent, doc_name: str, question: str) -> AgentResponse:
-    """Run one question. response.value is the typed Answer."""
-    return await agent.run(f"Filing: {doc_name}\n\nQuestion: {question}", options={"response_format": Answer})
+    """Run one question. response.value is the typed Answer.
+    Defence B (D30): if it cites pages no tool returned this run, retry once in the same
+    session. The caller can still see a failure with unread_citations()."""
+    session = agent.create_session()  # so the retry sees the first attempt
+    options = {"response_format": Answer}
+    response = await agent.run(f"Filing: {doc_name}\n\nQuestion: {question}", session=session, options=options)
+    if unread := unread_citations(response.value.citations, response):
+        retry = await agent.run(
+            f"You cited page(s) {unread} without reading them in this run. Memory is not evidence. "
+            "Search the filing, then answer again, citing only pages you read.",
+            session=session, options=options,
+        )
+        # One response for both attempts, so evals count every tool call and token.
+        retry.messages[:0] = response.messages
+        retry.usage_details = add_usage_details(response.usage_details, retry.usage_details)
+        response = retry
+    return response
 
 
 async def _main(doc_name: str, question: str, http: bool) -> None:

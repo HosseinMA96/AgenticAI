@@ -2,7 +2,7 @@
 
 import asyncio
 
-from agent_framework import Message, SessionContext
+from agent_framework import Content, Message, SessionContext
 
 from finsight.memory.episodes import Episode, EpisodicMemory, InMemoryEpisodeStore, JsonEpisodeStore
 from finsight.models import Answer
@@ -44,10 +44,33 @@ def test_after_run_saves_the_typed_answer():
     store = InMemoryEpisodeStore()
     ctx = SessionContext(input_messages=[Message("user", ["Filing: BOEING_2022_10K\n\nQuestion: margin?"])])
 
-    class FakeResponse:  # only .value is read
+    class FakeResponse:  # .value, plus .messages to show p5 was actually read
         value = Answer(reasoning="r", found=True, answer="10%", value=10, unit="%", citations=[5], confidence="high")
+        messages = [Message("tool", [Content.from_function_result(call_id="1", result="[page 5]\ntext")])]
 
     ctx._response = FakeResponse()
     asyncio.run(EpisodicMemory(store).after_run(agent=None, session=None, context=ctx, state={"company": "BOEING"}))
     assert store.recent("BOEING", 3)[0].model_dump(exclude={"saved_at"}) == {
         "company": "BOEING", "question": "margin?", "answer": "10%", "pages": [5]}
+
+
+def test_header_marks_memory_as_untrusted():
+    store = InMemoryEpisodeStore()
+    store.add(_ep("BOEING", "tax rate?"))
+    ctx = SessionContext(input_messages=[Message("user", ["Filing: BOEING_2022_10K\n\nQuestion: margin?"])])
+    asyncio.run(EpisodicMemory(store).before_run(agent=None, session=None, context=ctx, state={}))
+    assert "NOT evidence" in next(iter(ctx.context_messages.values()))[0].text
+
+
+def test_unverified_answer_is_not_saved():
+    # Cites p5 but no tool returned it: the poisoned-memory symptom (D30).
+    store = InMemoryEpisodeStore()
+    ctx = SessionContext(input_messages=[Message("user", ["Filing: BOEING_2022_10K\n\nQuestion: margin?"])])
+
+    class FakeResponse:
+        value = Answer(reasoning="r", found=True, answer="10%", value=10, unit="%", citations=[5], confidence="high")
+        messages: list = []
+
+    ctx._response = FakeResponse()
+    asyncio.run(EpisodicMemory(store).after_run(agent=None, session=None, context=ctx, state={"company": "BOEING"}))
+    assert store.recent("BOEING", 3) == []

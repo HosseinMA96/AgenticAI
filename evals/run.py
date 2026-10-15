@@ -23,6 +23,7 @@ from evals.scorers import citation_hit, numbers_match, parse_number
 from finsight.agents.analyst import ask, build_analyst, edgar_stdio
 from finsight.config import CHEAP_MODEL, MAIN_MODEL, PAGE_FORMAT, SEARCH_MODE
 from finsight.dataset import SPLITS
+from finsight.evidence import unread_citations
 from finsight.limits import count_tool_calls, limit_hit
 from finsight.memory.episodes import InMemoryEpisodeStore
 from finsight.pricing import cost_usd
@@ -69,6 +70,7 @@ async def score_one(agent: Agent, row: dict) -> dict:
         # Which tools, in order: shows MCP vs local use, and later feeds trajectory metrics (week 5).
         "tools_used": [c.name for m in response.messages for c in m.contents if c.type == "function_call"],
         "limit_hit": limit_hit(response),
+        "unread_citations": unread_citations(answer.citations, response),  # D30: cited but never read
         "usage": usage,
         "cost_usd": cost_usd(MAIN_MODEL, usage),
         "found": answer.found,

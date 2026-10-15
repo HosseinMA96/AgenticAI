@@ -75,8 +75,8 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
   - [x] RAG (long-term). Already built: the filings index in Azure AI Search, pulled in on demand via `search_filings` (D17–D25).
   - [x] Memory-as-tool notes (D28). Lesson `w2_step4_notes.py`: with no outside signal the agent saves nothing. Told it was wrong (by a bad gold label), it invented a false excuse and saved it as a note.
   - [x] Episodic `ContextProvider` (D29). `memory/episodes.py`, lesson `w2_step5_episodes.py`; evals use `--memory` with a fresh empty store.
-- [ ] ⏩ **NEXT** — Break it: poison a memory note and watch a wrong answer come out. Then add a defense.
-- [ ] Decisions to discuss:
+- [x] Break it: poison a memory note and watch a wrong answer come out. Then add a defense. Lesson `w2_step6_poison.py`: poison that discredits the filing won 3/3. Defence A + B (D30): 0/7.
+- [ ] ⏩ **NEXT** — Decisions to discuss (mostly made in D17–D30; confirm and tick):
   - Chunking strategy.
   - Vector vs keyword vs hybrid search, and what the reranker does.
   - Embedding dimensions.
