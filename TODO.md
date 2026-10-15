@@ -85,7 +85,7 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
   - Where memory is stored.
 - [ ] ✅ Dev accuracy beats the week-1 baseline. Recall@5 is reported for both chunkers.
 - [ ] Reflect: when does memory hurt?
-- [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Answer out loud or in `NOTES.md`; Claude points out gaps.
+- [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Cover memory too: notes vs episodes, the bad-gold-label note (D28 result), and episodic injection (D29 result). Answer out loud or in `NOTES.md`; Claude points out gaps.
 
 ## Week 3: orchestrations, workflow, terminations, approvals
 Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10

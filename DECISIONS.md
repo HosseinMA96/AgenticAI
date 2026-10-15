@@ -498,3 +498,9 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - It reuses the notes idea, with the difference that our code reads memory instead of the model choosing to.
 - Bcdr carry-over: "show the reviewer's past comments on this same app".
 - **Evals start with an empty store.** Otherwise later dev questions see earlier answers (leakage and poisoning). `evals.run --memory` builds a fresh in-memory store on every run.
+
+**Result (lesson w2_step5, 2026-10-14):**
+- An episode is a past answer: `{company, question, answer, pages}`. The 3 most recent for the same company are injected on **every** `agent.run()`, which means every turn, not just the first. Only runs that end in a typed `Answer` to a "Question:" are saved, so follow-ups such as feedback turns are not.
+- In the lesson, session 2 got the FY2022 episode but still searched twice. The episode didn't cover FY2021, and the agent must cite filing pages, so a past answer isn't treated as evidence.
+- Episodes store **answers**, not **lessons**. They help when a question repeats or builds on an earlier one. Notes can teach "how this company's filings work"; episodes can't.
+- Automatic memory is the riskier kind: a poisoned episode is injected every turn, and it arrives as given context that the model didn't ask for.
