@@ -76,16 +76,16 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
   - [x] Memory-as-tool notes (D28). Lesson `w2_step4_notes.py`: with no outside signal the agent saves nothing. Told it was wrong (by a bad gold label), it invented a false excuse and saved it as a note.
   - [x] Episodic `ContextProvider` (D29). `memory/episodes.py`, lesson `w2_step5_episodes.py`; evals use `--memory` with a fresh empty store.
 - [x] Break it: poison a memory note and watch a wrong answer come out. Then add a defense. Lesson `w2_step6_poison.py`: poison that discredits the filing won 3/3. Defence A + B (D30): 0/7.
-- [ ] ⏩ **NEXT** — Decisions to discuss (mostly made in D17–D30; confirm and tick):
+- [x] Decisions to discuss (confirmed 2026-10-14; chunking D23, search D25, dimensions D18 (1024, not measured vs 512), image vs text D26, memory D28–D30):
   - Chunking strategy.
   - Vector vs keyword vs hybrid search, and what the reranker does.
   - Embedding dimensions.
   - Image vs text for tables.
   - Automatic vs on-demand memory.
   - Where memory is stored.
-- [ ] ✅ Dev accuracy beats the week-1 baseline. Recall@5 is reported for both chunkers.
-- [ ] Reflect: when does memory hurt?
-- [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Cover memory too: notes vs episodes, the bad-gold-label note (D28 result), and episodic injection (D29 result). Answer out loud or in `NOTES.md`; Claude points out gaps.
+- [x] ✅ Dev accuracy beats the week-1 baseline. Recall@5 is reported for both chunkers. (93% vs 86% on dev, D25; recall@5 page 63% vs fixed 43%, `evals/retrieval.md`.)
+- [x] Reflect: when does memory hurt?
+- [x] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Cover memory too: notes vs episodes, the bad-gold-label note (D28 result), and episodic injection (D29 result). Answer out loud or in `NOTES.md`; Claude points out gaps.
 
 ## Week 3: orchestrations, workflow, terminations, approvals
 Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
