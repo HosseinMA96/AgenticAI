@@ -523,3 +523,20 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - **B alone** (unlabelled injection, scratch script): **3 of 4 poisoned.** The agent now *did* search and read p77, saw 14.7%, and still answered 41.0%, calling the page "pre-restatement". B passed it because the cited page *was* read.
 - **Lesson:** B checks that a cited page was **read**, not that it **supports** the claim. That is the Verifier's job (Week 3). A did the real work here. B remains as a cheap guard against citing unread pages.
 - One B-only run failed `Answer` validation (a structured-output flake, not reproduced).
+
+## D31 — Router labels and what each path changes (2026-10-15)
+
+**Options:**
+- Two labels (`answerable`, `oos`): simplest. Only `oos` changes the path.
+- **Three labels (`lookup`, `analysis`, `oos`), where `analysis` gets stronger reasoning.**
+
+**Choice:** three labels. The Router is gpt-5.4-nano. `oos` skips research. `lookup` and `analysis` use the same analyst and tools, but `analysis` gets more reasoning.
+
+**Why:**
+- A label earns its place only if it changes the path. Here the reasoning setting differs, and the eval can measure it per label (cost and latency on lookups, accuracy on analysis).
+- It's the classic triage pattern, and it carries over to Bcdr: some evidence checks are trivial, others need judgement.
+- A failed verification **retries Research once before going to a human**. Human review is the expensive step (user's call).
+
+**Found while checking (probe, 2026-10-15):** gpt-5.4's default reasoning effort here is **none**: 0 reasoning tokens without the option, and 44, 77 and 108 at low, medium and high. So every eval so far, including the 93%, ran with **no reasoning**. `lookup` keeps today's setting; `analysis` turns reasoning on. The effort level gets picked by eval.
+
+**Testing `oos`:** FinanceBench has no out-of-scope questions. Rather than invent any, we pair real questions with the wrong filing (e.g. a PepsiCo question against the Boeing 10-K).
