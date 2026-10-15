@@ -540,3 +540,18 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Found while checking (probe, 2026-10-15):** gpt-5.4's default reasoning effort here is **none**: 0 reasoning tokens without the option, and 44, 77 and 108 at low, medium and high. So every eval so far, including the 93%, ran with **no reasoning**. `lookup` keeps today's setting; `analysis` turns reasoning on. The effort level gets picked by eval.
 
 **Testing `oos`:** FinanceBench has no out-of-scope questions. Rather than invent any, we pair real questions with the wrong filing (e.g. a PepsiCo question against the Boeing 10-K).
+
+## D32 — Verifier: claim + cited pages only, with a calculator (2026-10-15)
+
+**Options:**
+- **A. It sees the question, the answer (value and unit) and the cited pages' text, plus a calculator.** Our code loads the pages from the filing, not from the analyst's messages.
+- B. A plus the analyst's `reasoning` field. It could check the method, but a poisoned excuse ("p77 is pre-restatement") would get in through it, reopening D30.
+- C. Its own `search_filings` tool, to look for counter-evidence. Thorough, but it becomes a second research agent: more cost, and its own context to poison.
+
+**Choice:** A. gpt-5.4 with **low** reasoning effort (D31 found the default is none, and checking math needs some thinking). Output: `Verdict{supported: bool, problem: str | None}`; `problem` goes back to Research on the retry.
+
+**Why:**
+- It closes the D30 gap: a page that was read but doesn't support the answer.
+- A clean context means the Verifier can't be talked into the analyst's answer.
+- It has its own prompt, not a copy of the eval's citation judge, so the product isn't graded by its own checker.
+- nano is a possible cheaper variant later, measured by eval.
