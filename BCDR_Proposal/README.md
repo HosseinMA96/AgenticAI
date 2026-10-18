@@ -56,3 +56,4 @@ The goal is an **advisory first pass** on every assessment step, written for two
 | `observability.md` | Telemetry design on App Insights v2 plus a SQL log table, and the OTel migration path |
 | `learning-and-memory.md` | How the system improves over time without poisoned memory; RAG as phase 2 |
 | `platform-and-open-questions.md` | Reliability, platform checklist, roadmap, risks, open questions |
+| `architect-discussion.md` | Log of the platform-boundary discussion with the architect (2026-10-17/18): positions, assessment, questions, pending impact on these docs |
