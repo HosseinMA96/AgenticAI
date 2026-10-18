@@ -58,3 +58,13 @@ class Answer(BaseModel):
         if known is not None and not set(self.citations) <= set(known):
             raise ValueError(f"cites pages {sorted(set(self.citations) - set(known))} not in the evidence")
         return self
+
+
+class Route(BaseModel):
+    """The Router's output (D31). The label picks the workflow path; reason is for debugging only."""
+
+    label: Literal["lookup", "analysis", "oos"] = Field(
+        description="lookup: one figure stated in this filing. analysis: compare, judge or compute across "
+        "figures in this filing. oos: about a different company than the filing, or not a filing question."
+    )
+    reason: str = Field(description="One short sentence on why this label.")

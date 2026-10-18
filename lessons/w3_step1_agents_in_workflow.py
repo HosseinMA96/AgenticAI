@@ -30,7 +30,7 @@ class Route(BaseModel):
 
 router = AgentExecutor(Agent(
     client=get_client(CHEAP_MODEL), name="router", instructions="Label the user's question.",
-    default_options=AGENT_DEFAULTS | {"responOkse_format": Route},  # structured output, as in week 1
+    default_options=AGENT_DEFAULTS | {"response_format": Route},  # structured output, as in week 1
 ))
 answerer = AgentExecutor(Agent(
     client=get_client(), name="answerer", instructions="Answer in one sentence from general knowledge.",
