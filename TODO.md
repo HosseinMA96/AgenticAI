@@ -92,7 +92,9 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
 - [ ] ⏩ **NEXT** — Workflow graph: Router (nano, conditional edges) → Research → Verifier → HITL → Report, with checkpointing.
   - [x] Walkthrough and sketch. Decisions: router labels `lookup` / `analysis` / `oos`, with stronger reasoning on `analysis` and a retry before human review (D31); Verifier design (D32).
   - [x] **Step 1 — agents in a workflow** (📘 `lessons/w3_step1_agents_in_workflow.py`): router → switch → agent or plain-code `oos`. Found: by default (`context_mode="full"`) the next agent receives the whole conversation, including the router's JSON.
-  - [ ] 🏗️ Router agent (nano, typed `Route`), plus an `oos` check set: real questions paired with the wrong filing.
+  - [x] 🏗️ Router agent (nano, typed `Route`), plus an `oos` check set: real questions paired with the wrong filing.
+    - `agents/router.py`, `prompts/router.md`, `python -m evals.router` (D33). Caught 40/42 wrong filings, blocked 0/42 good ones, $0.01. Both misses: Boeing/Corning named in the question, yet labelled `analysis`.
+    - Fix (user's idea): prompt checks the company first. 42/42 caught in 2 runs, still 0 blocked, cost about +10%.
   - [ ] 🏗️ Verifier agent (D32), with offline tests.
   - [ ] 🏗️ Wire the graph: Router → Research → Verifier → retry once → human review → Report, with checkpointing.
   - [ ] Measure: workflow vs single agent on dev (accuracy, $, latency, per Router label).

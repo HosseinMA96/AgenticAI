@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from agent_framework import Agent
+from agent_framework import Agent, AgentResponse
 
 from finsight.config import CHEAP_MODEL
 from finsight.llm import AGENT_DEFAULTS, get_client
@@ -21,7 +21,7 @@ def build_router() -> Agent:
     )
 
 
-async def route(router: Agent, doc_name: str, question: str) -> Route:
-    # Same input shape as the analyst, so the Router sees which filing the question is asked against.
-    response = await router.run(f"Filing: {doc_name}\n\nQuestion: {question}")
-    return response.value
+async def route(router: Agent, doc_name: str, question: str) -> AgentResponse:
+    """response.value is the typed Route. The whole response is returned (like analyst.ask) so evals can count tokens.
+    Same input shape as the analyst, so the Router sees which filing the question is asked against."""
+    return await router.run(f"Filing: {doc_name}\n\nQuestion: {question}")

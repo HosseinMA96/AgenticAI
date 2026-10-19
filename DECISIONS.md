@@ -555,3 +555,16 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - A clean context means the Verifier can't be talked into the analyst's answer.
 - It has its own prompt, not a copy of the eval's citation judge, so the product isn't graded by its own checker.
 - nano is a possible cheaper variant later, measured by eval.
+
+## D33 — Router check set: all of dev, right and wrong filing (2026-10-18)
+
+**Options:**
+- **A. All 42 dev questions, each asked twice:** against its real filing (should not be `oos`), and against a filing from a different company (should be `oos`). The wrong filing is picked with a fixed seed, so runs are repeatable.
+- B. 10 + 10 hand-picked. Quicker to read, but one mistake moves the score by 10 points.
+
+**Choice:** A (user's call). 84 nano calls, under $0.01.
+
+**Why:**
+- It measures both mistakes: letting a wrong filing through, and blocking a good question. The second is worse, because the user gets no answer at all.
+- No made-up data: real questions and real filings, paired in code at run time.
+- `lookup` vs `analysis` has no gold label, so the eval only reports how the in-scope questions split between them.
