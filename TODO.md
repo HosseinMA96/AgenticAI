@@ -95,6 +95,7 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] 🏗️ Router agent (nano, typed `Route`), plus an `oos` check set: real questions paired with the wrong filing.
     - `agents/router.py`, `prompts/router.md`, `python -m evals.router` (D33). Caught 40/42 wrong filings, blocked 0/42 good ones, $0.01. Both misses: Boeing/Corning named in the question, yet labelled `analysis`.
     - Fix (user's idea): prompt checks the company first. 42/42 caught in 2 runs, still 0 blocked, cost about +10%.
+    - Stabilise lookup vs analysis (user's idea): a "copy it straight from one place?" test. Label flips between 2 runs: 4 → 2 (totals matched, 9/33, but two questions swapped). Still 42/42 and 0 blocked, cost about +7% more.
   - [ ] 🏗️ Verifier agent (D32), with offline tests.
   - [ ] 🏗️ Wire the graph: Router → Research → Verifier → retry once → human review → Report, with checkpointing.
   - [ ] Measure: workflow vs single agent on dev (accuracy, $, latency, per Router label).

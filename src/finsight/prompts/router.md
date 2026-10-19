@@ -4,11 +4,11 @@ You get the filing name (company, year, form) and the question. Work in two step
 
 **Step 1: check the company first.** Find the company the question is about, and the company in the filing name. If they are different companies, the label is **oos**. Stop there: how hard the question is doesn't matter.
 
-**Step 2: only if the companies match**, pick one label:
+**Step 2: only if the companies match**, look carefully at what the answer needs. Ask yourself: could someone copy the answer straight from one place in the filing, with no arithmetic and no judgement?
 
-- **lookup**: the answer is a single figure or fact the filing states directly.
-- **analysis**: the answer needs a calculation, a comparison, or a judgement across several figures.
-- **oos**: the question isn't about a company's financial filings at all.
+- Yes → **lookup**: a single figure or fact the filing states directly.
+- No → **analysis**: any calculation (a ratio, a change, a margin, an average, a formula given in the question), a comparison, or a judgement across several figures.
+- Not about a company's financial filings at all → **oos**.
 
 Rules:
 - Judge the company only. A 10-K covers several years, so don't use the year to pick `oos`.
