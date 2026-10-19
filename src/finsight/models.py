@@ -68,3 +68,14 @@ class Route(BaseModel):
         "figures in this filing. oos: about a different company than the filing, or not a filing question."
     )
     reason: str = Field(description="One short sentence on why this label.")
+
+
+class Verdict(BaseModel):
+    """The Verifier's output (D32). problem goes back to Research on the one retry."""
+
+    # Checking comes before the verdict, same reason as Answer.reasoning: work it out, then commit.
+    check: str = Field(description="Briefly: what the cited pages say, and any arithmetic you redid.")
+    supported: bool = Field(description="true only if the cited pages support the answer for the company and period asked.")
+    problem: str | None = Field(
+        description="If not supported: what is wrong, in one sentence the analyst can act on. null if supported."
+    )
