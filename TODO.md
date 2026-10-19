@@ -89,7 +89,7 @@ Book: 4.7–4.8, 4.12, 5.3, Ch 14
 
 ## Week 3: orchestrations, workflow, terminations, approvals
 Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
-- [ ] ⏩ **NEXT** — Workflow graph: Router (nano, conditional edges) → Research → Verifier → HITL → Report, with checkpointing.
+- [x] Workflow graph: Router (nano, conditional edges) → Research → Verifier → HITL → Report, with checkpointing.
   - [x] Walkthrough and sketch. Decisions: router labels `lookup` / `analysis` / `oos`, with stronger reasoning on `analysis` and a retry before human review (D31); Verifier design (D32).
   - [x] **Step 1 — agents in a workflow** (📘 `lessons/w3_step1_agents_in_workflow.py`): router → switch → agent or plain-code `oos`. Found: by default (`context_mode="full"`) the next agent receives the whole conversation, including the router's JSON.
   - [x] 🏗️ Router agent (nano, typed `Route`), plus an `oos` check set: real questions paired with the wrong filing.
@@ -100,12 +100,12 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
     - `agents/verifier.py`, `prompts/verifier.md`, `Verdict` in `models.py`, `tests/test_verifier.py` (5 offline tests; 82 pass). Live spot check on one Adobe question: right answer ✓, wrong math ✗, a missing cited page ✗. About $0.003–0.009 per check.
   - [x] 🏗️ Wire the graph: Router → Research → Verifier → retry once → human review → Report, with checkpointing.
     - `orchestration/workflow.py` + `messages.py` (D34: our own executors, typed messages). CLI: `python -m finsight.orchestration.workflow <FILING_ID> "<question>"`. Live: Adobe ratio verified on the first try (15 s); the same question vs Boeing → oos. 5 offline wiring tests (87 pass); removing the retry edge makes 2 of them fail. Surviving a real restart is the Approvals item below.
-  - [ ] Measure: workflow vs single agent on dev (accuracy, $, latency, per Router label). Both with the edgar MCP tool, because the 93% baseline had it.
+  - [x] Measure: workflow vs single agent on dev (accuracy, $, latency, per Router label). Both with the edgar MCP tool, because the 93% baseline had it.
     - [x] Run 1 (D35: a human hand-off is scored as-is): workflow + edgar 90% / 93% vs single agent 93% / 93%; $2.01 / $2.24 vs $0.94 / $0.97; p50 17–18 s vs 6 s. The Verifier approved all 3 wrong answers in each run: definition or judgement disagreements with gold, not unsupported claims. It also sent 1 correct answer to a human over rounding (5.2576% vs 5.3%). The one gain was `00678`: wrong in both single-agent runs, right in both workflow runs.
     - [x] Fix: a retry that breaks `Answer`'s rules crashed the question (`00591`). Now it keeps the first answer (test added).
-    - [ ] Fix: the Verifier accepts rounding differences, then re-run.
-    - [ ] Variant: the workflow without edgar, vs with it (user's request), to measure the tool on its own.
-- [ ] Research-step variants:
+    - [x] Fix: the Verifier accepts rounding differences (3/3 spot checks; still rejects bad math 3/3), then re-run. v2: 90% / 90%, $2.45 / $1.94, p50 14 s. 0 crashes. The one human hand-off was a truly wrong answer (`01290`). Still not better than the single agent.
+    - [x] Variant: the workflow without edgar, vs with it (user's request), to measure the tool on its own. No edgar: 93% / 95%, $2.23 / $2.36, p50 14–16 s. With edgar: 90% / 90%. Edgar was called on only 1–2 questions per run, so the gap (1–2 questions) is noise: the tool makes no measurable difference. In no-edgar r2, both human hand-offs were *correct* answers.
+- [ ] ⏩ **NEXT** — Research-step variants:
   - [ ] Handoff.
   - [ ] Concurrent + aggregator.
   - [ ] Group chat maker-checker.
