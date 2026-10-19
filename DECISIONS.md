@@ -594,3 +594,17 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Why:**
 - It keeps accuracy comparable with the single agent, which has no human step.
 - Checking the rejected answers against gold shows whether the Verifier was right to reject them. B hides that.
+
+## D36 — Handoff variant: quick agent hands off to a deep agent (2026-10-19)
+
+**Options:**
+- **A. Quick vs deep.** A no-reasoning "quick" agent starts and hands off to a "deep" agent (reasoning on) when the question needs math or judgement.
+- B. Text vs tables: hand table questions to an image specialist. Images scored worse in D26.
+- C. Filing vs edgar: hand off to an edgar specialist. Edgar is called on 1–2 of 42 questions (week 3 measure).
+
+**Choice:** A (user's call).
+
+**Why:**
+- It's the same split as the Router (D31), so it compares **code picks the path** (Router) with **the model picks the path** (handoff) on the same two paths.
+- B and C would hardly ever fire, so they'd teach little and measure nothing.
+- Handoff goes one way only (quick → deep), so the two can't ping-pong. Mesh routing is kept for the break-it step.
