@@ -9,6 +9,9 @@ from types import SimpleNamespace
 
 import pytest
 
+from agent_framework.exceptions import ChatClientException
+from pydantic import ValidationError
+
 from finsight.models import Answer, Route, Verdict
 from finsight.orchestration import workflow as wf
 from finsight.orchestration.messages import Question, ReviewDecision, ReviewRequest
@@ -35,6 +38,12 @@ def stubs(monkeypatch):
 
     async def ask(agent, doc, prompt, reasoning=None):
         s["asks"].append((prompt, reasoning))
+        if s.get("broken_retry") and len(s["asks"]) == 2:
+            # What the real client raises when the reply breaks Answer's validator.
+            try:
+                Answer(reasoning="r", found=False, answer="none", value=1.0, unit="x", citations=[1], confidence="low")
+            except ValidationError as v:
+                raise ChatClientException("failed to complete the prompt") from v
         return fake(answer())
 
     async def verify(agent, doc, q, a):
@@ -97,3 +106,9 @@ def test_two_failures_pause_for_a_human_then_resume(stubs, tmp_path):
     result = run(workflow, responses={req.request_id: ReviewDecision(approved=False, note="bad page")})
     report = result.get_outputs()[-1]
     assert (report.status, report.reviewer_note) == ("human_rejected", "bad page")
+
+
+def test_a_broken_retry_keeps_the_first_answer(stubs):
+    stubs["supported"], stubs["broken_retry"] = [False, True], True
+    report = run(wf.build_workflow(), message=Q).get_outputs()[-1]
+    assert (report.status, report.attempts, report.answer.value) == ("verified", 2, 0.83)

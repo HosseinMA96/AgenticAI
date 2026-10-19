@@ -101,6 +101,9 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] 🏗️ Wire the graph: Router → Research → Verifier → retry once → human review → Report, with checkpointing.
     - `orchestration/workflow.py` + `messages.py` (D34: our own executors, typed messages). CLI: `python -m finsight.orchestration.workflow <FILING_ID> "<question>"`. Live: Adobe ratio verified on the first try (15 s); the same question vs Boeing → oos. 5 offline wiring tests (87 pass); removing the retry edge makes 2 of them fail. Surviving a real restart is the Approvals item below.
   - [ ] Measure: workflow vs single agent on dev (accuracy, $, latency, per Router label). Both with the edgar MCP tool, because the 93% baseline had it.
+    - [x] Run 1 (D35: a human hand-off is scored as-is): workflow + edgar 90% / 93% vs single agent 93% / 93%; $2.01 / $2.24 vs $0.94 / $0.97; p50 17–18 s vs 6 s. The Verifier approved all 3 wrong answers in each run: definition or judgement disagreements with gold, not unsupported claims. It also sent 1 correct answer to a human over rounding (5.2576% vs 5.3%). The one gain was `00678`: wrong in both single-agent runs, right in both workflow runs.
+    - [x] Fix: a retry that breaks `Answer`'s rules crashed the question (`00591`). Now it keeps the first answer (test added).
+    - [ ] Fix: the Verifier accepts rounding differences, then re-run.
     - [ ] Variant: the workflow without edgar, vs with it (user's request), to measure the tool on its own.
 - [ ] Research-step variants:
   - [ ] Handoff.

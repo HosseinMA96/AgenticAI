@@ -18,6 +18,8 @@ from agent_framework import (
     Case, Default, Executor, FileCheckpointStorage, WorkflowBuilder, WorkflowContext, executor, handler,
     response_handler,
 )
+from agent_framework.exceptions import ChatClientException
+from pydantic import ValidationError
 from typing_extensions import Never
 
 from finsight.agents.analyst import ask, build_analyst, edgar_stdio
@@ -77,7 +79,15 @@ class ResearchNode(Executor):
         m = c.draft.routed
         prompt = (f"{m.question.question}\n\nA checker rejected your previous answer: {c.verdict.problem}\n"
                   "Look at the evidence again and answer.")
-        await self._attempt(m, prompt, 2, c.steps, ctx)
+        try:
+            await self._attempt(m, prompt, 2, c.steps, ctx)
+        except ChatClientException as e:
+            # Criticism can rattle the model into an answer that breaks Answer's rules (e.g. "not found"
+            # plus a value; dev run workflow-edgar-r1, financebench_id_00591). A broken retry shouldn't
+            # crash the question: keep the first answer. Anything else (e.g. a 429) still raises.
+            if not isinstance(e.__cause__, ValidationError):
+                raise
+            await ctx.send_message(Draft(routed=m, answer=c.draft.answer, attempt=2, steps=c.steps))
 
     async def _attempt(self, m: Routed, prompt: str, attempt: int, steps: list[Step], ctx: WorkflowContext[Draft]) -> None:
         # The one place the label changes the path: analysis gets reasoning, lookup doesn't (D31).
