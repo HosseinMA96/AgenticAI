@@ -18,6 +18,11 @@ def answer() -> Answer:
     return Answer(reasoning="r", found=True, answer="0.83", value=0.83, unit="ratio", citations=[57], confidence="medium")
 
 
+def fake(value) -> SimpleNamespace:
+    """Just enough of an AgentResponse: the typed value, no messages, no usage."""
+    return SimpleNamespace(value=value, messages=[], usage_details={})
+
+
 @pytest.fixture
 def stubs(monkeypatch):
     """Replace the three agents. Returns a dict to set the route label and the verdicts, and to count calls."""
@@ -26,16 +31,16 @@ def stubs(monkeypatch):
         monkeypatch.setattr(wf, name, lambda *a, **k: None)
 
     async def route(agent, doc, q):
-        return SimpleNamespace(value=Route(label=s["label"], reason="stub"))
+        return fake(Route(label=s["label"], reason="stub"))
 
     async def ask(agent, doc, prompt, reasoning=None):
         s["asks"].append((prompt, reasoning))
-        return SimpleNamespace(value=answer())
+        return fake(answer())
 
     async def verify(agent, doc, q, a):
         ok = s["supported"][min(s["verifies"], len(s["supported"]) - 1)]
         s["verifies"] += 1
-        return SimpleNamespace(value=Verdict(check="c", supported=ok, problem=None if ok else "wrong year"))
+        return fake(Verdict(check="c", supported=ok, problem=None if ok else "wrong year"))
 
     monkeypatch.setattr(wf, "route", route)
     monkeypatch.setattr(wf, "ask", ask)
@@ -72,13 +77,14 @@ def test_one_failure_retries_with_the_problem(stubs):
     stubs["supported"] = [False, True]
     report = run(wf.build_workflow(), message=Q).get_outputs()[-1]
     assert (report.status, report.attempts) == ("verified", 2)
+    assert [st.agent for st in report.steps] == ["router", "research", "verifier", "research", "verifier"]
     assert "wrong year" in stubs["asks"][1][0]  # the retry prompt carries the Verifier's problem
 
 
 def test_two_failures_pause_for_a_human_then_resume(stubs, tmp_path):
     stubs["supported"] = [False]
     storage = wf.FileCheckpointStorage(tmp_path, allowed_checkpoint_types=wf.CHECKPOINT_TYPES)
-    workflow = wf.build_workflow(storage)
+    workflow = wf.build_workflow(checkpoint_storage=storage)
     result = run(workflow, message=Q)
     assert result.get_outputs() == [] and len(stubs["asks"]) == 2  # paused after one retry, no third try
     req = result.get_request_info_events()[0]

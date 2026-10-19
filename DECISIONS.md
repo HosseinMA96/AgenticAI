@@ -582,3 +582,15 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - It reuses the analyst's existing retry (defence B, D30) instead of rebuilding it.
 - Typed messages between steps carry straight over to the .NET Bcdr work.
 - Cost: more code than B, and we write the message types ourselves.
+
+## D35 — In evals, a question that needs a human is scored as-is (2026-10-18)
+
+**Options:**
+- **A. Score the answer the human would have seen, and count separately how many questions needed a human.**
+- B. Count it as wrong, as if the human always said no.
+
+**Choice:** A (user's call). The eval doesn't resume the paused run with a made-up decision; it reads the answer from the pending request and marks the row `needs_human`.
+
+**Why:**
+- It keeps accuracy comparable with the single agent, which has no human step.
+- Checking the rejected answers against gold shows whether the Verifier was right to reject them. B hides that.

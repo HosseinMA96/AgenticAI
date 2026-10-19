@@ -1,8 +1,8 @@
 """Eval harness v0 (book Ch 10, D14).
 
-    uv run python -m evals.run --split dev [--limit N] [--config NAME]
+    uv run python -m evals.run --split dev [--limit N] [--config NAME] [--workflow [--no-edgar]]
 
-Runs the analyst on each question, scores it, writes evals/results/<timestamp>_<config>.json
+Runs the analyst (or, with --workflow, the week-3 workflow graph) on each question, scores it, writes evals/results/<timestamp>_<config>.json
 and appends one row to evals/leaderboard.md.
 """
 
@@ -26,6 +26,8 @@ from finsight.dataset import SPLITS
 from finsight.evidence import unread_citations
 from finsight.limits import count_tool_calls, limit_hit
 from finsight.memory.episodes import InMemoryEpisodeStore
+from finsight.orchestration.messages import Question
+from finsight.orchestration.workflow import build_workflow
 from finsight.pricing import cost_usd
 from finsight.rag.search import MODES
 from finsight.tools.filings import load_pages
@@ -54,25 +56,71 @@ async def with_retry(make_call):
             await asyncio.sleep(delay)
 
 
-async def score_one(agent: Agent, row: dict) -> dict:
-    start = time.monotonic()
-    out = {"id": row["id"], "company": row["company"], "answer_type": row["answer_type"], "gold": row["answer"]}
-    try:
-        response = await with_retry(lambda: ask(agent, row["doc_name"], row["question"]))
-        answer = response.value
-    except Exception as e:  # a crash is a wrong answer, not a dead eval run
-        return out | {"error": repr(e), "correct": False, "citation_hit": False, "citation_supported": False,
-                      "latency_s": time.monotonic() - start, "tool_calls": 0, "cost_usd": 0.0, "usage": {}}
+async def run_agent(agent: Agent, row: dict):
+    """One question through the single analyst. Returns (Answer, metrics)."""
+    response = await with_retry(lambda: ask(agent, row["doc_name"], row["question"]))
     usage = response.usage_details or {}
-    out |= {
-        "latency_s": time.monotonic() - start,
+    return response.value, {
         "tool_calls": count_tool_calls(response),
         # Which tools, in order: shows MCP vs local use, and later feeds trajectory metrics (week 5).
         "tools_used": [c.name for m in response.messages for c in m.contents if c.type == "function_call"],
         "limit_hit": limit_hit(response),
-        "unread_citations": unread_citations(answer.citations, response),  # D30: cited but never read
+        "unread_citations": unread_citations(response.value.citations, response),  # D30: cited but never read
         "usage": usage,
         "cost_usd": cost_usd(MAIN_MODEL, usage),
+    }
+
+
+async def run_workflow(tools: list, row: dict):
+    """One question through the workflow graph. Returns (Answer or None if oos, metrics).
+    A fresh workflow per question (and per 429 retry): one workflow object runs one question at a time."""
+    q = Question(doc_name=row["doc_name"], question=row["question"])
+    result = await with_retry(lambda: build_workflow(*tools).run(q))
+    if requests := result.get_request_info_events():
+        # D35: no human in an eval. Score what the human would have seen; don't resume with a made-up decision.
+        c = requests[0].data.checked
+        status, answer, route, verdict, attempts, steps = "needs_human", c.draft.answer, c.draft.routed.route, c.verdict, c.draft.attempt, c.steps
+    else:
+        r = result.get_outputs()[-1]
+        status, answer, route, verdict, attempts, steps = r.status, r.answer, r.route, r.verdict, r.attempts, r.steps
+    research = [st for st in steps if st.agent == "research"]
+    usage: dict = {}
+    for st in steps:  # one usage dict for the whole question, so the leaderboard columns stay comparable
+        for k, v in st.usage.items():
+            if isinstance(v, int):
+                usage[k] = usage.get(k, 0) + v
+    cost_by_agent: dict = {}
+    for st in steps:
+        cost_by_agent[st.agent] = cost_by_agent.get(st.agent, 0.0) + cost_usd(st.model, st.usage)
+    return answer, {
+        "tool_calls": sum(len(st.tools_used) for st in research),
+        "tools_used": [t for st in research for t in st.tools_used],
+        "limit_hit": any(st.limit_hit for st in research),
+        "unread_citations": research[-1].unread_citations if research else [],
+        "usage": usage,
+        "cost_usd": sum(cost_by_agent.values()),
+        "cost_by_agent": cost_by_agent,
+        "route": route.label,
+        "status": status,
+        "attempts": attempts,
+        "verified": bool(verdict and verdict.supported),
+        "verifier_problem": verdict.problem if verdict else None,
+    }
+
+
+async def score_one(run, row: dict) -> dict:
+    """run: run_agent or run_workflow with its first argument bound."""
+    start = time.monotonic()
+    out = {"id": row["id"], "company": row["company"], "answer_type": row["answer_type"], "gold": row["answer"]}
+    try:
+        answer, metrics = await run(row)
+    except Exception as e:  # a crash is a wrong answer, not a dead eval run
+        return out | {"error": repr(e), "correct": False, "citation_hit": False, "citation_supported": False,
+                      "latency_s": time.monotonic() - start, "tool_calls": 0, "cost_usd": 0.0, "usage": {}}
+    out |= {"latency_s": time.monotonic() - start, **metrics, "judge_cost_usd": 0.0}
+    if answer is None:  # the Router said oos: no answer, so it's wrong (every dev question is in scope)
+        return out | {"correct": False, "citation_hit": False, "citation_supported": False}
+    out |= {
         "found": answer.found,
         "answer": answer.answer,
         "value": answer.value,
@@ -101,6 +149,26 @@ async def score_one(agent: Agent, row: dict) -> dict:
 
     out["judge_cost_usd"] = judge_cost
     return out
+
+
+def summarize_workflow(rows: list[dict]) -> dict:
+    """Extra numbers only the workflow has: per Router label, retries, human hand-offs, $ per agent."""
+    ok = [r for r in rows if "status" in r]
+    labels = {lab: [r for r in ok if r["route"] == lab] for lab in ("lookup", "analysis", "oos")}
+    human = [r for r in ok if r["status"] == "needs_human"]
+    retried = [r for r in ok if r["attempts"] == 2]
+    agents = {a for r in ok for a in r["cost_by_agent"]}
+    return {
+        "by_label": {lab: {"n": len(rs), "accuracy": _rate(rs)} for lab, rs in labels.items()},
+        "status": {st: sum(r["status"] == st for r in ok) for st in {r["status"] for r in ok}},
+        "retried": len(retried),
+        "retried_then_verified": sum(r["status"] == "verified" for r in retried),
+        # D35: were the Verifier's final rejections right? Gold says whether those answers were wrong.
+        "needs_human": len(human),
+        "needs_human_but_correct": sum(r["correct"] for r in human),
+        "verified_but_wrong": sum(r["status"] == "verified" and not r["correct"] for r in ok),
+        "cost_by_agent": {a: sum(r["cost_by_agent"].get(a, 0.0) for r in ok) for a in sorted(agents)},
+    }
 
 
 def _rate(rows: list[dict]) -> float | None:
@@ -137,31 +205,39 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
-async def main(split: str, limit: int | None, config: str, prompt: str, search_mode: str, page_format: str, memory: bool) -> None:
+async def main(split: str, limit: int | None, config: str, prompt: str, search_mode: str, page_format: str, memory: bool,
+               workflow: bool = False, edgar: bool = True) -> None:
     if split != "dev":
         # CLAUDE.md: test runs only at the end of week 5, with the user's explicit OK each time.
         if input(f"Run the held-out '{split}' split? Type yes: ") != "yes":
             return
     rows = [json.loads(l) for l in (SPLITS / f"{split}.jsonl").read_text().splitlines()][:limit]
     sem = asyncio.Semaphore(CONCURRENCY)
-    async with edgar_stdio() as edgar:
-        # A fresh store per run: never the saved episodes file, so every eval starts empty (D29).
-        store = InMemoryEpisodeStore() if memory else None
-        agent = build_analyst(edgar, prompt=prompt, search_mode=search_mode, page_format=page_format, memory=store)
+    async with edgar_stdio() as edgar_tool:
+        if workflow:
+            # The workflow uses the config defaults for prompt, search and pages; only edgar can be switched off.
+            run = lambda row: run_workflow([edgar_tool] if edgar else [], row)
+        else:
+            # A fresh store per run: never the saved episodes file, so every eval starts empty (D29).
+            store = InMemoryEpisodeStore() if memory else None
+            agent = build_analyst(edgar_tool, prompt=prompt, search_mode=search_mode, page_format=page_format, memory=store)
+            run = lambda row: run_agent(agent, row)
 
         async def bounded(row: dict) -> dict:
             async with sem:
-                r = await score_one(agent, row)
+                r = await score_one(run, row)
                 print(f"{'✅' if r['correct'] else '❌'} {r['id']} {r['company']:16s} cite={'✓' if r['citation_supported'] else '✗'}")
                 return r
 
         results = await asyncio.gather(*(bounded(r) for r in rows))
 
     summary = summarize(results)
+    if workflow:
+        summary["workflow"] = summarize_workflow(results)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     (EVALS / "results").mkdir(exist_ok=True)
     out_file = EVALS / "results" / f"{stamp}_{config}.json"
-    out_file.write_text(json.dumps({"config": config, "prompt": prompt, "search_mode": search_mode, "page_format": page_format, "memory": memory, "split": split, "summary": summary, "rows": results}, indent=1))
+    out_file.write_text(json.dumps({"config": config, "workflow": workflow, "edgar": edgar, "prompt": prompt, "search_mode": search_mode, "page_format": page_format, "memory": memory, "split": split, "summary": summary, "rows": results}, indent=1))
 
     board = EVALS / "leaderboard.md"
     if not board.exists():
@@ -192,5 +268,7 @@ if __name__ == "__main__":
     p.add_argument("--search-mode", default=SEARCH_MODE, choices=MODES, help="search_filings mode (D25)")
     p.add_argument("--page-format", default=PAGE_FORMAT, choices=["text", "image"], help="pages as text or images (D26)")
     p.add_argument("--memory", action="store_true", help="episodic memory, starting from an empty store (D29)")
+    p.add_argument("--workflow", action="store_true", help="run the week-3 workflow graph instead of the single analyst")
+    p.add_argument("--no-edgar", action="store_true", help="with --workflow: leave the edgar MCP tool out of Research")
     a = p.parse_args()
-    asyncio.run(main(a.split, a.limit, a.config, a.prompt, a.search_mode, a.page_format, a.memory))
+    asyncio.run(main(a.split, a.limit, a.config, a.prompt, a.search_mode, a.page_format, a.memory, a.workflow, not a.no_edgar))

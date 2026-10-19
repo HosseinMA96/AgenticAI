@@ -20,13 +20,15 @@ from agent_framework import (
 )
 from typing_extensions import Never
 
-from finsight.agents.analyst import ask, build_analyst
+from finsight.agents.analyst import ask, build_analyst, edgar_stdio
 from finsight.agents.router import build_router, route
 from finsight.agents.verifier import build_verifier, verify
-from finsight.config import ANALYSIS_REASONING
+from finsight.config import ANALYSIS_REASONING, CHEAP_MODEL, MAIN_MODEL
+from finsight.evidence import unread_citations
+from finsight.limits import limit_hit
 from finsight.models import Verdict
 from finsight.orchestration.messages import (
-    Checked, Draft, Question, Report, ReviewDecision, ReviewRequest, Routed,
+    Checked, Draft, Question, Report, ReviewDecision, ReviewRequest, Routed, Step,
 )
 
 CHECKPOINTS = Path(__file__).parents[3] / "checkpoints"  # gitignored
@@ -34,8 +36,13 @@ CHECKPOINTS = Path(__file__).parents[3] / "checkpoints"  # gitignored
 # Checkpoints are pickled, and MAF only unpickles listed types. A missing type fails
 # silently (found in BcdrSequential), so every message type and everything inside it is listed.
 CHECKPOINT_TYPES = [f"finsight.orchestration.messages:{n}" for n in (
-    "Question", "Routed", "Draft", "Checked", "ReviewRequest", "ReviewDecision", "Report")
+    "Step", "Question", "Routed", "Draft", "Checked", "ReviewRequest", "ReviewDecision", "Report")
 ] + [f"finsight.models:{n}" for n in ("Answer", "Route", "Verdict")]
+
+
+def _step(agent: str, model: str, response) -> Step:
+    tools = [c.name for m in response.messages for c in m.contents if c.type == "function_call"]
+    return Step(agent=agent, model=model, usage=dict(response.usage_details or {}), tools_used=tools)
 
 
 class RouterNode(Executor):
@@ -46,35 +53,39 @@ class RouterNode(Executor):
     @handler
     async def run(self, q: Question, ctx: WorkflowContext[Routed]) -> None:
         response = await route(self.agent, q.doc_name, q.question)
-        await ctx.send_message(Routed(question=q, route=response.value))
+        await ctx.send_message(Routed(question=q, route=response.value, steps=[_step("router", CHEAP_MODEL, response)]))
 
 
 @executor(id="out_of_scope")
 async def out_of_scope(m: Routed, ctx: WorkflowContext[Never, Report]) -> None:
-    await ctx.yield_output(Report(question=m.question, status="oos", route=m.route))  # no research, no cost
+    await ctx.yield_output(Report(question=m.question, status="oos", route=m.route, steps=m.steps))  # no research, no cost
 
 
 class ResearchNode(Executor):
-    def __init__(self) -> None:
+    def __init__(self, *tools) -> None:
         super().__init__(id="research")
-        self.agent = build_analyst()  # no edgar MCP here: the analyst almost never used it (D16)
+        # tools: extra tools such as the edgar MCP. The single-agent baseline had edgar, so the
+        # fair comparison passes it too; leaving it out is a separate variant (TODO, Measure).
+        self.agent = build_analyst(*tools)
 
     @handler
     async def first(self, m: Routed, ctx: WorkflowContext[Draft]) -> None:
-        await self._attempt(m, m.question.question, 1, ctx)
+        await self._attempt(m, m.question.question, 1, m.steps, ctx)
 
     @handler  # MAF picks the handler by message type: a Checked arriving here is a retry
     async def retry(self, c: Checked, ctx: WorkflowContext[Draft]) -> None:
         m = c.draft.routed
         prompt = (f"{m.question.question}\n\nA checker rejected your previous answer: {c.verdict.problem}\n"
                   "Look at the evidence again and answer.")
-        await self._attempt(m, prompt, 2, ctx)
+        await self._attempt(m, prompt, 2, c.steps, ctx)
 
-    async def _attempt(self, m: Routed, prompt: str, attempt: int, ctx: WorkflowContext[Draft]) -> None:
+    async def _attempt(self, m: Routed, prompt: str, attempt: int, steps: list[Step], ctx: WorkflowContext[Draft]) -> None:
         # The one place the label changes the path: analysis gets reasoning, lookup doesn't (D31).
         effort = ANALYSIS_REASONING if m.route.label == "analysis" else None
         response = await ask(self.agent, m.question.doc_name, prompt, reasoning=effort)
-        await ctx.send_message(Draft(routed=m, answer=response.value, attempt=attempt))
+        step = _step("research", MAIN_MODEL, response).model_copy(update={
+            "limit_hit": limit_hit(response), "unread_citations": unread_citations(response.value.citations, response)})
+        await ctx.send_message(Draft(routed=m, answer=response.value, attempt=attempt, steps=[*steps, step]))
 
 
 class VerifierNode(Executor):
@@ -84,13 +95,14 @@ class VerifierNode(Executor):
 
     @handler
     async def check(self, d: Draft, ctx: WorkflowContext[Checked]) -> None:
-        q = d.routed.question
+        q, steps = d.routed.question, d.steps
         if not d.answer.citations:  # nothing to check, so no model call; it fails like any unsupported answer
             verdict = Verdict(check="No cited pages.", supported=False,
                               problem="The answer cites no pages. Find the pages that state it.")
         else:
-            verdict = (await verify(self.agent, q.doc_name, q.question, d.answer)).value
-        await ctx.send_message(Checked(draft=d, verdict=verdict))
+            response = await verify(self.agent, q.doc_name, q.question, d.answer)
+            verdict, steps = response.value, [*steps, _step("verifier", MAIN_MODEL, response)]
+        await ctx.send_message(Checked(draft=d, verdict=verdict, steps=steps))
 
 
 class HumanReviewNode(Executor):
@@ -108,7 +120,7 @@ class HumanReviewNode(Executor):
         await ctx.send_message(Report(
             question=c.draft.routed.question, status="human_approved" if d.approved else "human_rejected",
             route=c.draft.routed.route, answer=c.draft.answer, verdict=c.verdict, attempts=c.draft.attempt,
-            reviewer_note=d.note,
+            reviewer_note=d.note, steps=c.steps,
         ))
 
 
@@ -122,15 +134,15 @@ class ReportNode(Executor):
     async def verified(self, c: Checked, ctx: WorkflowContext[Never, Report]) -> None:
         d = c.draft
         await ctx.yield_output(Report(question=d.routed.question, status="verified", route=d.routed.route,
-                                      answer=d.answer, verdict=c.verdict, attempts=d.attempt))
+                                      answer=d.answer, verdict=c.verdict, attempts=d.attempt, steps=c.steps))
 
     @handler
     async def reviewed(self, r: Report, ctx: WorkflowContext[Never, Report]) -> None:
         await ctx.yield_output(r)
 
 
-def build_workflow(checkpoint_storage: FileCheckpointStorage | None = None):
-    router, research, verifier = RouterNode(), ResearchNode(), VerifierNode()
+def build_workflow(*research_tools, checkpoint_storage: FileCheckpointStorage | None = None):
+    router, research, verifier = RouterNode(), ResearchNode(*research_tools), VerifierNode()
     human, report = HumanReviewNode(), ReportNode()
     return (
         WorkflowBuilder(start_executor=router, name="finsight", checkpoint_storage=checkpoint_storage,
@@ -156,20 +168,21 @@ def checkpoint_storage() -> FileCheckpointStorage:
 
 
 async def _main(doc_name: str, question: str) -> None:
-    workflow = build_workflow(checkpoint_storage())
-    result = await workflow.run(Question(doc_name=doc_name, question=question))
-    # A paused run returns with a pending request; answer it in the terminal and resume.
-    while requests := result.get_request_info_events():
-        req = requests[0]
-        c = req.data.checked
-        print(f"\n⚠️  Failed verification twice.\n  answer: {c.draft.answer.answer}\n  problem: {c.verdict.problem}")
-        approved = input("  Approve anyway? [y/N] ").strip().lower() == "y"
-        note = input("  Note: ").strip()
-        result = await workflow.run(responses={req.request_id: ReviewDecision(approved=approved, note=note)})
+    async with edgar_stdio() as edgar:
+        workflow = build_workflow(edgar, checkpoint_storage=checkpoint_storage())
+        result = await workflow.run(Question(doc_name=doc_name, question=question))
+        # A paused run returns with a pending request; answer it in the terminal and resume.
+        while requests := result.get_request_info_events():
+            req = requests[0]
+            c = req.data.checked
+            print(f"\n⚠️  Failed verification twice.\n  answer: {c.draft.answer.answer}\n  problem: {c.verdict.problem}")
+            approved = input("  Approve anyway? [y/N] ").strip().lower() == "y"
+            note = input("  Note: ").strip()
+            result = await workflow.run(responses={req.request_id: ReviewDecision(approved=approved, note=note)})
     for e in result:
         if e.type == "executor_completed":
             print(f"  ✓ {e.executor_id}")
-    print(result.get_outputs()[-1].model_dump_json(indent=2, exclude={"question"}))
+    print(result.get_outputs()[-1].model_dump_json(indent=2, exclude={"question", "steps"}))
 
 
 if __name__ == "__main__":
