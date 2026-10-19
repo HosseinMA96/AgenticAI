@@ -45,12 +45,13 @@ def build_analyst(
     )
 
 
-async def ask(agent: Agent, doc_name: str, question: str) -> AgentResponse:
+async def ask(agent: Agent, doc_name: str, question: str, reasoning: str | None = None) -> AgentResponse:
     """Run one question. response.value is the typed Answer.
+    reasoning: an effort level ("low", "medium", ...); None keeps the model's default, which is none (D31).
     Defence B (D30): if it cites pages no tool returned this run, retry once in the same
     session. The caller can still see a failure with unread_citations()."""
     session = agent.create_session()  # so the retry sees the first attempt
-    options = {"response_format": Answer}
+    options = {"response_format": Answer} | ({"reasoning": {"effort": reasoning}} if reasoning else {})
     response = await agent.run(f"Filing: {doc_name}\n\nQuestion: {question}", session=session, options=options)
     if unread := unread_citations(response.value.citations, response):
         retry = await agent.run(

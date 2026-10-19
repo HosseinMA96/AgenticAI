@@ -568,3 +568,17 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - It measures both mistakes: letting a wrong filing through, and blocking a good question. The second is worse, because the user gets no answer at all.
 - No made-up data: real questions and real filings, paired in code at run time.
 - `lookup` vs `analysis` has no gold label, so the eval only reports how the in-scope questions split between them.
+
+## D34 — Agents in the graph: our own executors with typed messages (2026-10-18)
+
+**Options:**
+- **A. Our own small executors.** Each node calls the existing function (`route`, `ask`, `verify`) and sends a typed Pydantic message along the edge.
+- B. MAF's `AgentExecutor` wrapper. Less code, but by default it passes the whole conversation to the next agent (`context_mode="full"`, found in lesson w3_step1).
+
+**Choice:** A (user's call).
+
+**Why:**
+- Each agent sees only what we hand it. That keeps the Verifier's clean context (D32): with B it would see the analyst's reasoning, where a poisoned excuse can hide (D30).
+- It reuses the analyst's existing retry (defence B, D30) instead of rebuilding it.
+- Typed messages between steps carry straight over to the .NET Bcdr work.
+- Cost: more code than B, and we write the message types ourselves.

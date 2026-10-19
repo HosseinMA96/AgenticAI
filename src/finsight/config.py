@@ -20,3 +20,7 @@ SEARCH_MODE = "vector"  # or "hybrid+rerank", "hybrid", "keyword"; try others wi
 SEARCH_TOP = 3  # pages per call, same as the week-1 keyword tool
 # How search_filings returns each page: extracted text, or a page image (D26).
 PAGE_FORMAT = "text"  # or "image"
+
+# Workflow (D31). The Router's "analysis" label gets this reasoning effort; "lookup" keeps the default (none).
+# A starting guess, to be picked by eval.
+ANALYSIS_REASONING = "low"

@@ -98,7 +98,8 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
     - Stabilise lookup vs analysis (user's idea): a "copy it straight from one place?" test. Label flips between 2 runs: 4 → 2 (totals matched, 9/33, but two questions swapped). Still 42/42 and 0 blocked, cost about +7% more.
   - [x] 🏗️ Verifier agent (D32), with offline tests.
     - `agents/verifier.py`, `prompts/verifier.md`, `Verdict` in `models.py`, `tests/test_verifier.py` (5 offline tests; 82 pass). Live spot check on one Adobe question: right answer ✓, wrong math ✗, a missing cited page ✗. About $0.003–0.009 per check.
-  - [ ] 🏗️ Wire the graph: Router → Research → Verifier → retry once → human review → Report, with checkpointing.
+  - [x] 🏗️ Wire the graph: Router → Research → Verifier → retry once → human review → Report, with checkpointing.
+    - `orchestration/workflow.py` + `messages.py` (D34: our own executors, typed messages). CLI: `python -m finsight.orchestration.workflow <FILING_ID> "<question>"`. Live: Adobe ratio verified on the first try (15 s); the same question vs Boeing → oos. 5 offline wiring tests (87 pass); removing the retry edge makes 2 of them fail. Surviving a real restart is the Approvals item below.
   - [ ] Measure: workflow vs single agent on dev (accuracy, $, latency, per Router label).
 - [ ] Research-step variants:
   - [ ] Handoff.
