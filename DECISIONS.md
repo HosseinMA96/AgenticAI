@@ -608,3 +608,16 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - It's the same split as the Router (D31), so it compares **code picks the path** (Router) with **the model picks the path** (handoff) on the same two paths.
 - B and C would hardly ever fire, so they'd teach little and measure nothing.
 - Handoff goes one way only (quick → deep), so the two can't ping-pong. Mesh routing is kept for the break-it step.
+
+## D37 — Concurrent + aggregator: lesson only, no product step (2026-10-19)
+
+**Options:**
+- **A. A lesson only:** 3 agents in parallel on the judgement questions, to see whether they agree. Under $0.50.
+- B. Skip it entirely.
+- (Not offered: a full product step and dev eval, ~$6 for two runs.)
+
+**Choice:** A (user's call).
+
+**Why:**
+- Numeric accuracy is already 100%. The misses are judgement or definition disagreements with gold (week 3 measure), and three copies of the same model will probably share the same view. A vote would repeat the mistake at 3× the cost.
+- The lesson still shows the pattern (fan-out → fan-in → aggregator) and tests the guess for under a dollar.

@@ -109,7 +109,8 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] Handoff (D36: quick → deep).
     - [x] 📘 `lessons/w3_step2_handoff.py`: on 4 questions quick handed off exactly where the Router says `analysis`. `--break` (contradictory jobs, mesh): quick → deep → quick, then quick *wrote* "I'm handing off" without calling the tool. The run ended with no answer and no error (3/3).
     - [x] 🏗️ `orchestration/handoff.py`, `build_workflow(research="handoff")`, `evals.run --research handoff`. A run that ends without a valid Answer becomes found=false (test). Dev: 93% / 90%, $2.03 / $2.07, p50 16–17 s, vs the Router workflow at 90% / 90%, $2.45 / $1.94, 14 s: a tie. Quick kept every Router-`lookup` (17/17) but also kept 5–8 `analysis` questions per run; one of those (`00494`) was wrong both runs.
-  - [ ] Concurrent + aggregator.
+  - [x] Concurrent + aggregator. Lesson only (D37, user's call): 3 agents vote on the judgement questions. No product step or dev eval, because voting can't fix disagreements with gold.
+    - `lessons/w3_step3_concurrent.py`: 3 questions × 3 agents, every vote unanimous (3–0), so the vote never changed anything. 2 of 3 unanimous answers disagreed with gold. ~$0.30; the wait = the slowest agent (6–12 s), the cost = 3×.
   - [ ] Group chat maker-checker.
   - [ ] Magentic (multi-company compare).
 - [ ] Terminations: max turns, token/$ budget, keyword, tool-call cap, timeout, composite, and mid-run cancellation.
