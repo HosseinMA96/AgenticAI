@@ -15,6 +15,7 @@ class Step(BaseModel):
     Report ends with a per-agent breakdown, and no node needs to read another's conversation."""
     agent: str
     model: str
+    detail: str = ""  # e.g. which handoff agents answered: "quick" or "quick→deep"
     usage: dict = Field(default_factory=dict)  # MAF usage_details
     tools_used: list[str] = Field(default_factory=list)
     limit_hit: bool = False  # D5

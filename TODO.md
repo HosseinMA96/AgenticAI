@@ -106,7 +106,9 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
     - [x] Fix: the Verifier accepts rounding differences (3/3 spot checks; still rejects bad math 3/3), then re-run. v2: 90% / 90%, $2.45 / $1.94, p50 14 s. 0 crashes. The one human hand-off was a truly wrong answer (`01290`). Still not better than the single agent.
     - [x] Variant: the workflow without edgar, vs with it (user's request), to measure the tool on its own. No edgar: 93% / 95%, $2.23 / $2.36, p50 14–16 s. With edgar: 90% / 90%. Edgar was called on only 1–2 questions per run, so the gap (1–2 questions) is noise: the tool makes no measurable difference. In no-edgar r2, both human hand-offs were *correct* answers.
 - [ ] ⏩ **NEXT** — Research-step variants:
-  - [ ] Handoff.
+  - [x] Handoff (D36: quick → deep).
+    - [x] 📘 `lessons/w3_step2_handoff.py`: on 4 questions quick handed off exactly where the Router says `analysis`. `--break` (contradictory jobs, mesh): quick → deep → quick, then quick *wrote* "I'm handing off" without calling the tool. The run ended with no answer and no error (3/3).
+    - [x] 🏗️ `orchestration/handoff.py`, `build_workflow(research="handoff")`, `evals.run --research handoff`. A run that ends without a valid Answer becomes found=false (test). Dev: 93% / 90%, $2.03 / $2.07, p50 16–17 s, vs the Router workflow at 90% / 90%, $2.45 / $1.94, 14 s: a tie. Quick kept every Router-`lookup` (17/17) but also kept 5–8 `analysis` questions per run; one of those (`00494`) was wrong both runs.
   - [ ] Concurrent + aggregator.
   - [ ] Group chat maker-checker.
   - [ ] Magentic (multi-company compare).

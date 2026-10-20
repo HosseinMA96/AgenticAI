@@ -112,3 +112,19 @@ def test_a_broken_retry_keeps_the_first_answer(stubs):
     stubs["supported"], stubs["broken_retry"] = [False, True], True
     report = run(wf.build_workflow(), message=Q).get_outputs()[-1]
     assert (report.status, report.attempts, report.answer.value) == ("verified", 2, 0.83)
+
+
+def test_handoff_without_a_valid_answer_becomes_not_found():
+    # Lesson w3_step2 --break: the run can end on plain text ("I'm handing this off...") with no tool call.
+    # That must not pass as an answer.
+    from agent_framework import AgentResponse, Message
+
+    from finsight.orchestration.handoff import ask_handoff
+
+    class FakeHandoff:
+        async def run(self, prompt):
+            reply = AgentResponse(messages=[Message("assistant", ["I'm handing this off to the deep analyst."], author_name="quick")])
+            return SimpleNamespace(get_outputs=lambda: [reply])
+
+    answer, _, who = asyncio.run(ask_handoff(FakeHandoff(), "X_2022_10K", "ratio?"))
+    assert (answer.found, answer.citations, who) == (False, [], "quick")

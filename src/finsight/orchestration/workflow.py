@@ -29,6 +29,7 @@ from finsight.config import ANALYSIS_REASONING, CHEAP_MODEL, MAIN_MODEL
 from finsight.evidence import unread_citations
 from finsight.limits import limit_hit
 from finsight.models import Verdict
+from finsight.orchestration.handoff import ask_handoff, build_handoff
 from finsight.orchestration.messages import (
     Checked, Draft, Question, Report, ReviewDecision, ReviewRequest, Routed, Step,
 )
@@ -64,11 +65,14 @@ async def out_of_scope(m: Routed, ctx: WorkflowContext[Never, Report]) -> None:
 
 
 class ResearchNode(Executor):
-    def __init__(self, *tools) -> None:
+    def __init__(self, *tools, mode: str = "router") -> None:
+        """tools: extra tools such as the edgar MCP. The single-agent baseline had edgar, so the
+        fair comparison passes it too; leaving it out is a separate variant (TODO, Measure).
+        mode: "router" = one analyst, the Router's label sets reasoning (D31);
+              "handoff" = quick hands off to deep, the model decides (D36)."""
         super().__init__(id="research")
-        # tools: extra tools such as the edgar MCP. The single-agent baseline had edgar, so the
-        # fair comparison passes it too; leaving it out is a separate variant (TODO, Measure).
-        self.agent = build_analyst(*tools)
+        self.tools, self.mode = tools, mode
+        self.agent = build_analyst(*tools) if mode == "router" else None
 
     @handler
     async def first(self, m: Routed, ctx: WorkflowContext[Draft]) -> None:
@@ -90,12 +94,17 @@ class ResearchNode(Executor):
             await ctx.send_message(Draft(routed=m, answer=c.draft.answer, attempt=2, steps=c.steps))
 
     async def _attempt(self, m: Routed, prompt: str, attempt: int, steps: list[Step], ctx: WorkflowContext[Draft]) -> None:
-        # The one place the label changes the path: analysis gets reasoning, lookup doesn't (D31).
-        effort = ANALYSIS_REASONING if m.route.label == "analysis" else None
-        response = await ask(self.agent, m.question.doc_name, prompt, reasoning=effort)
+        if self.mode == "handoff":
+            # A fresh handoff workflow per attempt: its conversation is per-run state.
+            answer, response, who = await ask_handoff(build_handoff(*self.tools), m.question.doc_name, prompt)
+        else:
+            # The one place the label changes the path: analysis gets reasoning, lookup doesn't (D31).
+            effort = ANALYSIS_REASONING if m.route.label == "analysis" else None
+            response = await ask(self.agent, m.question.doc_name, prompt, reasoning=effort)
+            answer, who = response.value, ""
         step = _step("research", MAIN_MODEL, response).model_copy(update={
-            "limit_hit": limit_hit(response), "unread_citations": unread_citations(response.value.citations, response)})
-        await ctx.send_message(Draft(routed=m, answer=response.value, attempt=attempt, steps=[*steps, step]))
+            "detail": who, "limit_hit": limit_hit(response), "unread_citations": unread_citations(answer.citations, response)})
+        await ctx.send_message(Draft(routed=m, answer=answer, attempt=attempt, steps=[*steps, step]))
 
 
 class VerifierNode(Executor):
@@ -151,8 +160,9 @@ class ReportNode(Executor):
         await ctx.yield_output(r)
 
 
-def build_workflow(*research_tools, checkpoint_storage: FileCheckpointStorage | None = None):
-    router, research, verifier = RouterNode(), ResearchNode(*research_tools), VerifierNode()
+def build_workflow(*research_tools, research: str = "router", checkpoint_storage: FileCheckpointStorage | None = None):
+    """research: "router" or "handoff" (see ResearchNode). With handoff, the Router still blocks oos."""
+    router, research, verifier = RouterNode(), ResearchNode(*research_tools, mode=research), VerifierNode()
     human, report = HumanReviewNode(), ReportNode()
     return (
         WorkflowBuilder(start_executor=router, name="finsight", checkpoint_storage=checkpoint_storage,

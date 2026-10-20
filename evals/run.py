@@ -11,6 +11,7 @@ import asyncio
 import json
 import random
 import statistics
+from collections import Counter
 import time
 from datetime import datetime
 from pathlib import Path
@@ -71,11 +72,11 @@ async def run_agent(agent: Agent, row: dict):
     }
 
 
-async def run_workflow(tools: list, row: dict):
+async def run_workflow(tools: list, row: dict, research: str = "router"):
     """One question through the workflow graph. Returns (Answer or None if oos, metrics).
     A fresh workflow per question (and per 429 retry): one workflow object runs one question at a time."""
     q = Question(doc_name=row["doc_name"], question=row["question"])
-    result = await with_retry(lambda: build_workflow(*tools).run(q))
+    result = await with_retry(lambda: build_workflow(*tools, research=research).run(q))
     if requests := result.get_request_info_events():
         # D35: no human in an eval. Score what the human would have seen; don't resume with a made-up decision.
         c = requests[0].data.checked
@@ -83,7 +84,7 @@ async def run_workflow(tools: list, row: dict):
     else:
         r = result.get_outputs()[-1]
         status, answer, route, verdict, attempts, steps = r.status, r.answer, r.route, r.verdict, r.attempts, r.steps
-    research = [st for st in steps if st.agent == "research"]
+    research_steps = [st for st in steps if st.agent == "research"]
     usage: dict = {}
     for st in steps:  # one usage dict for the whole question, so the leaderboard columns stay comparable
         for k, v in st.usage.items():
@@ -93,14 +94,15 @@ async def run_workflow(tools: list, row: dict):
     for st in steps:
         cost_by_agent[st.agent] = cost_by_agent.get(st.agent, 0.0) + cost_usd(st.model, st.usage)
     return answer, {
-        "tool_calls": sum(len(st.tools_used) for st in research),
-        "tools_used": [t for st in research for t in st.tools_used],
-        "limit_hit": any(st.limit_hit for st in research),
-        "unread_citations": research[-1].unread_citations if research else [],
+        "tool_calls": sum(len(st.tools_used) for st in research_steps),
+        "tools_used": [t for st in research_steps for t in st.tools_used],
+        "limit_hit": any(st.limit_hit for st in research_steps),
+        "unread_citations": research_steps[-1].unread_citations if research_steps else [],
         "usage": usage,
         "cost_usd": sum(cost_by_agent.values()),
         "cost_by_agent": cost_by_agent,
         "route": route.label,
+        "handled_by": [st.detail for st in research_steps if st.detail],  # handoff: "quick" or "quick→deep"
         "status": status,
         "attempts": attempts,
         "verified": bool(verdict and verdict.supported),
@@ -168,6 +170,8 @@ def summarize_workflow(rows: list[dict]) -> dict:
         "needs_human_but_correct": sum(r["correct"] for r in human),
         "verified_but_wrong": sum(r["status"] == "verified" and not r["correct"] for r in ok),
         "cost_by_agent": {a: sum(r["cost_by_agent"].get(a, 0.0) for r in ok) for a in sorted(agents)},
+        # Handoff only: who answered the first attempt, and how that lines up with the Router's label.
+        "handled_by_vs_route": dict(Counter(f"{r['route']}:{r['handled_by'][0]}" for r in ok if r.get("handled_by"))),
     }
 
 
@@ -206,7 +210,7 @@ def summarize(rows: list[dict]) -> dict:
 
 
 async def main(split: str, limit: int | None, config: str, prompt: str, search_mode: str, page_format: str, memory: bool,
-               workflow: bool = False, edgar: bool = True) -> None:
+               workflow: bool = False, edgar: bool = True, research: str = "router") -> None:
     if split != "dev":
         # CLAUDE.md: test runs only at the end of week 5, with the user's explicit OK each time.
         if input(f"Run the held-out '{split}' split? Type yes: ") != "yes":
@@ -216,7 +220,7 @@ async def main(split: str, limit: int | None, config: str, prompt: str, search_m
     async with edgar_stdio() as edgar_tool:
         if workflow:
             # The workflow uses the config defaults for prompt, search and pages; only edgar can be switched off.
-            run = lambda row: run_workflow([edgar_tool] if edgar else [], row)
+            run = lambda row: run_workflow([edgar_tool] if edgar else [], row, research)
         else:
             # A fresh store per run: never the saved episodes file, so every eval starts empty (D29).
             store = InMemoryEpisodeStore() if memory else None
@@ -237,7 +241,7 @@ async def main(split: str, limit: int | None, config: str, prompt: str, search_m
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     (EVALS / "results").mkdir(exist_ok=True)
     out_file = EVALS / "results" / f"{stamp}_{config}.json"
-    out_file.write_text(json.dumps({"config": config, "workflow": workflow, "edgar": edgar, "prompt": prompt, "search_mode": search_mode, "page_format": page_format, "memory": memory, "split": split, "summary": summary, "rows": results}, indent=1))
+    out_file.write_text(json.dumps({"config": config, "workflow": workflow, "edgar": edgar, "research": research, "prompt": prompt, "search_mode": search_mode, "page_format": page_format, "memory": memory, "split": split, "summary": summary, "rows": results}, indent=1))
 
     board = EVALS / "leaderboard.md"
     if not board.exists():
@@ -270,5 +274,6 @@ if __name__ == "__main__":
     p.add_argument("--memory", action="store_true", help="episodic memory, starting from an empty store (D29)")
     p.add_argument("--workflow", action="store_true", help="run the week-3 workflow graph instead of the single analyst")
     p.add_argument("--no-edgar", action="store_true", help="with --workflow: leave the edgar MCP tool out of Research")
+    p.add_argument("--research", default="router", choices=["router", "handoff"], help="with --workflow: Research variant (D36)")
     a = p.parse_args()
-    asyncio.run(main(a.split, a.limit, a.config, a.prompt, a.search_mode, a.page_format, a.memory, a.workflow, not a.no_edgar))
+    asyncio.run(main(a.split, a.limit, a.config, a.prompt, a.search_mode, a.page_format, a.memory, a.workflow, not a.no_edgar, a.research))
