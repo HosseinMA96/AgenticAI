@@ -274,6 +274,6 @@ if __name__ == "__main__":
     p.add_argument("--memory", action="store_true", help="episodic memory, starting from an empty store (D29)")
     p.add_argument("--workflow", action="store_true", help="run the week-3 workflow graph instead of the single analyst")
     p.add_argument("--no-edgar", action="store_true", help="with --workflow: leave the edgar MCP tool out of Research")
-    p.add_argument("--research", default="router", choices=["router", "handoff"], help="with --workflow: Research variant (D36)")
+    p.add_argument("--research", default="router", choices=["router", "handoff", "makerchecker", "concurrent"], help="with --workflow: Research variant (D36)")
     a = p.parse_args()
     asyncio.run(main(a.split, a.limit, a.config, a.prompt, a.search_mode, a.page_format, a.memory, a.workflow, not a.no_edgar, a.research))

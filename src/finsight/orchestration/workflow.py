@@ -29,7 +29,9 @@ from finsight.config import ANALYSIS_REASONING, CHEAP_MODEL, MAIN_MODEL
 from finsight.evidence import unread_citations
 from finsight.limits import limit_hit
 from finsight.models import Verdict
+from finsight.orchestration.concurrent import ask_concurrent, build_concurrent
 from finsight.orchestration.handoff import ask_handoff, build_handoff
+from finsight.orchestration.maker_checker import ask_maker_checker, build_maker_checker
 from finsight.orchestration.messages import (
     Checked, Draft, Question, Report, ReviewDecision, ReviewRequest, Routed, Step,
 )
@@ -69,7 +71,9 @@ class ResearchNode(Executor):
         """tools: extra tools such as the edgar MCP. The single-agent baseline had edgar, so the
         fair comparison passes it too; leaving it out is a separate variant (TODO, Measure).
         mode: "router" = one analyst, the Router's label sets reasoning (D31);
-              "handoff" = quick hands off to deep, the model decides (D36)."""
+              "handoff" = quick hands off to deep, the model decides (D36);
+              "makerchecker" = analyst and a critic loop in a group chat;
+              "concurrent" = 3 analysts, plain-code vote (D37)."""
         super().__init__(id="research")
         self.tools, self.mode = tools, mode
         self.agent = build_analyst(*tools) if mode == "router" else None
@@ -97,6 +101,10 @@ class ResearchNode(Executor):
         if self.mode == "handoff":
             # A fresh handoff workflow per attempt: its conversation is per-run state.
             answer, response, who = await ask_handoff(build_handoff(*self.tools), m.question.doc_name, prompt)
+        elif self.mode == "makerchecker":
+            answer, response, who = await ask_maker_checker(build_maker_checker(*self.tools), m.question.doc_name, prompt)
+        elif self.mode == "concurrent":
+            answer, response, who = await ask_concurrent(build_concurrent(*self.tools), m.question.doc_name, prompt)
         else:
             # The one place the label changes the path: analysis gets reasoning, lookup doesn't (D31).
             effort = ANALYSIS_REASONING if m.route.label == "analysis" else None

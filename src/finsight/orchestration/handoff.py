@@ -42,20 +42,29 @@ def build_handoff(*extra_tools):
     return HandoffBuilder(participants=[quick, deep]).with_start_agent(quick).add_handoff(quick, [deep]).build()
 
 
+def combine(outputs) -> SimpleNamespace:
+    """Many per-agent AgentResponses → one response-like object (all messages, summed usage) for the step meter."""
+    usage = None
+    for o in outputs:
+        usage = add_usage_details(usage, o.usage_details) if usage else o.usage_details
+    return SimpleNamespace(messages=[m for o in outputs for m in o.messages], usage_details=usage or {})
+
+
+def no_answer() -> Answer:
+    return Answer(reasoning="The agents ended without a valid answer.", found=False,
+                  answer="No answer was produced.", value=None, unit=None, citations=[], confidence="low")
+
+
 async def ask_handoff(workflow, doc_name: str, question: str):
     """Run one question. Returns (Answer, a response-like object with all messages and usage, who answered).
     If the run ends without a valid Answer (the silent failure in lesson w3_step2), returns found=False,
     so the Verifier rejects it instead of it passing as an answer."""
     result = await workflow.run(f"Filing: {doc_name}\n\nQuestion: {question}")
     outputs = result.get_outputs()  # one AgentResponse per agent turn
-    usage = None
-    for o in outputs:
-        usage = add_usage_details(usage, o.usage_details) if usage else o.usage_details
-    combined = SimpleNamespace(messages=[m for o in outputs for m in o.messages], usage_details=usage or {})
+    combined = combine(outputs)
     who = "→".join(o.messages[-1].author_name or "?" for o in outputs if o.messages)
     try:
         answer = Answer.model_validate_json(outputs[-1].text)
     except (ValidationError, IndexError):
-        answer = Answer(reasoning="The agents ended without a valid answer.", found=False,
-                        answer="No answer was produced.", value=None, unit=None, citations=[], confidence="low")
+        answer = no_answer()
     return answer, combined, who
