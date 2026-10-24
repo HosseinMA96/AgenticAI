@@ -112,6 +112,8 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] Concurrent + aggregator. Lesson only (D37, user's call): 3 agents vote on the judgement questions. No product step or dev eval, because voting can't fix disagreements with gold.
     - `lessons/w3_step3_concurrent.py`: 3 questions × 3 agents, every vote unanimous (3–0), so the vote never changed anything. 2 of 3 unanimous answers disagreed with gold. ~$0.30; the wait = the slowest agent (6–12 s), the cost = 3×.
   - [ ] Group chat maker-checker.
+    - [x] 📘 `lessons/w3_step4_maker_checker.py`: structured `{approved, issues}` checker works in a group chat (needs `output_from="all"` to see turns). Control `00678`: approved first look (3 turns). Wrong-answer `01290`: checker rejected 3 drafts in a row, never converged, `max_rounds=6` ended it. `--break` (checker may never approve): the same 7 turns, ended only by `max_rounds`.
+    - [ ] 🏗️ Product step: decide whether it goes in `src/finsight/` (needs a dev eval, ~$2).
   - [ ] Magentic (multi-company compare).
 - [ ] Terminations: max turns, token/$ budget, keyword, tool-call cap, timeout, composite, and mid-run cancellation.
 - [ ] Break it: remove a termination condition and watch the loop run away.
