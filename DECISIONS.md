@@ -621,3 +621,26 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Why:**
 - Numeric accuracy is already 100%. The misses are judgement or definition disagreements with gold (week 3 measure), and three copies of the same model will probably share the same view. A vote would repeat the mistake at 3× the cost.
 - The lesson still shows the pattern (fan-out → fan-in → aggregator) and tests the guess for under a dollar.
+
+## D38 — Maker-checker and Concurrent get product steps and dev evals after all (2026-10-24)
+
+**Options:**
+- A. Keep D37 (Concurrent lesson only) and skip a maker-checker product step. About $0.
+- **B. Build both as `--research makerchecker` / `--research concurrent` and run each once on dev, one after the other.** About $6.5 together.
+- C. Build only maker-checker, which repairs answers, and leave Concurrent as a lesson.
+
+**Choice:** B (user's call; reverses the "no dev eval" part of D37).
+
+**Why:** the user wanted the numbers for every pattern in the Week 3 comparison table, not a guess.
+
+**Result (dev, 42 questions, one run each; the single agent was 93% / 93% at ~$0.95, p50 6 s):**
+| Config | Accuracy | Text | Citation supported | $ agent | p50 / p95 s | Tool calls avg |
+|---|---|---|---|---|---|---|
+| Maker-checker | 88% | 83% | 98% | 3.14 | 19 / 45 | 6.4 |
+| Concurrent (3 votes, median/majority) | 90% (86% before the rerun below) | 87% | 90% | 3.62 | 18 / 82 | 8.9 |
+
+- Neither beat the single agent, the Router workflow (90%, ~$2.2) or Handoff (90–93%, ~$2.05). Both cost 30–60% more than Handoff and the single agent's cost is 3× lower.
+- Maker-checker: 0 errors. As in the lesson, the checker mostly nitpicked citations. Accuracy 88% vs 90% is about one question, so it is noise; the cost and latency are not.
+- Concurrent: 2 errors, both Azure 429 token-rate-limit failures (`00723`, `10130`; 3× parallel agents trip the cap, 165–211 s of retries), scored wrong. So its accuracy is understated by up to 2 questions (86% → at most ~90%), and its p95 of 115 s is retry waiting. 2 limit hits (`00591`, `04103`) were both correct. Citation support fell to 86%, partly the same two rows. As D37 predicted, agreeing copies don't fix disagreements with gold.
+- **Rerun (2026-10-24):** the 2 rate-limited questions were rerun one at a time and both were correct. The saved result and leaderboard row now include them. Concurrent: 90% / 87% text, citation supported 90%, $3.62, p95 82 s, 0 errors. That ties the Router workflow and Handoff on accuracy at ~1.7× the cost, and is still below the single agent (93%, $0.95).
+- Single runs, 1 question ≈ 2.4 points, so "worse" is not proven; "no better, and costlier" is.
