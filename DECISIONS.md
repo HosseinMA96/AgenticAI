@@ -644,3 +644,16 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 - Concurrent: 2 errors, both Azure 429 token-rate-limit failures (`00723`, `10130`; 3× parallel agents trip the cap, 165–211 s of retries), scored wrong. So its accuracy is understated by up to 2 questions (86% → at most ~90%), and its p95 of 115 s is retry waiting. 2 limit hits (`00591`, `04103`) were both correct. Citation support fell to 86%, partly the same two rows. As D37 predicted, agreeing copies don't fix disagreements with gold.
 - **Rerun (2026-10-24):** the 2 rate-limited questions were rerun one at a time and both were correct. The saved result and leaderboard row now include them. Concurrent: 90% / 87% text, citation supported 90%, $3.62, p95 82 s, 0 errors. That ties the Router workflow and Handoff on accuracy at ~1.7× the cost, and is still below the single agent (93%, $0.95).
 - Single runs, 1 question ≈ 2.4 points, so "worse" is not proven; "no better, and costlier" is.
+
+## D39 — A whole-run budget as shared middleware (2026-10-24)
+
+**Problem:** lesson w3_step6 showed the tool-call cap, the timeout and the iteration limit all reset on every agent turn. In a 6-turn chat the worst case is 6× each. Only `max_rounds` covers the whole conversation.
+
+**Options:**
+- **A. Middleware that counts as it goes.** One shared budget object attached to every agent as chat + function middleware. It counts $, tool calls and wall-clock and raises when one is crossed. Works in every pattern (group chat, Magentic, handoff).
+- B. A check inside our own workflow nodes. Simple, but invisible inside a group chat or Magentic.
+- C. Only an outer `asyncio.wait_for`. Cheapest, but stops on time not cost, and gives no clean answer.
+
+**Choice:** A (user's call).
+
+**Why:** it's the only option that covers the patterns whose inner turns we don't control, and it is the same middleware idea the Week 4 cost meter needs.

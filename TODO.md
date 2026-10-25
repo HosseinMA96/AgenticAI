@@ -118,6 +118,10 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] Magentic (multi-company compare). Lesson only: dev has no multi-company question to score (8 companies, 0 comparisons), so no product step or eval.
     - `lessons/w3_step5_magentic.py`: Boeing vs Corning FY2022 tax rate, hand-written task, no gold. Manager sent boeing_analyst, then corning_analyst, then asked boeing_analyst to write the comparison (−0.6% vs 22.9%, both cited to p. 77). 39 s, 3 specialist turns, under $0.50.
 - [ ] ⏩ **NEXT** — Terminations: max turns, token/$ budget, keyword, tool-call cap, timeout, composite, and mid-run cancellation.
+  - [x] 📘 `lessons/w3_step6_limit_scope.py`: the client's tool-call cap (3) is per agent turn, not per chat: 8 pings over 4 turns. Only `max_rounds` covers the whole conversation today.
+  - [x] 🏗️ Whole-run budget (D39, option A): `middleware/budget.py` (`RunBudget`: $, tool calls, wall-clock; one object shared by all agents via `middleware=budget.middleware()`), 5 offline tests.
+    - `lessons/w3_step7_budget.py`: same ping chat as step 6 with a shared budget of 5 calls: exactly 5 pings, then `BudgetExceeded` reached our `try/except` cleanly through the group chat. $0.0002.
+    - Not yet wired into the workflow graph or `evals.run` (a later step: it needs a per-question budget).
 - [ ] Break it: remove a termination condition and watch the loop run away.
 - [ ] Approvals:
   - [ ] A tool with `approval_mode` set.
