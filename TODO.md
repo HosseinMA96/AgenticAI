@@ -122,6 +122,7 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] 🏗️ Whole-run budget (D39, option A): `middleware/budget.py` (`RunBudget`: $, tool calls, wall-clock; one object shared by all agents via `middleware=budget.middleware()`), 5 offline tests.
     - `lessons/w3_step7_budget.py`: same ping chat as step 6 with a shared budget of 5 calls: exactly 5 pings, then `BudgetExceeded` reached our `try/except` cleanly through the group chat. $0.0002.
     - Not yet wired into the workflow graph or `evals.run` (a later step: it needs a per-question budget).
+  - [x] 📘 Mid-run cancellation: `lessons/w3_step8_cancel.py`: `task.cancel()` after ping 2 (inside a 1 s tool) ended the group chat at once with `CancelledError`; 15 s later still 2 pings, so no leaked tasks. Our tools are read-only; a tool with side effects needs a compensating action or idempotency (user's point, saga pattern).
 - [ ] Break it: remove a termination condition and watch the loop run away.
 - [ ] Approvals:
   - [ ] A tool with `approval_mode` set.
