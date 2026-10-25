@@ -105,7 +105,7 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
     - [x] Fix: a retry that breaks `Answer`'s rules crashed the question (`00591`). Now it keeps the first answer (test added).
     - [x] Fix: the Verifier accepts rounding differences (3/3 spot checks; still rejects bad math 3/3), then re-run. v2: 90% / 90%, $2.45 / $1.94, p50 14 s. 0 crashes. The one human hand-off was a truly wrong answer (`01290`). Still not better than the single agent.
     - [x] Variant: the workflow without edgar, vs with it (user's request), to measure the tool on its own. No edgar: 93% / 95%, $2.23 / $2.36, p50 14–16 s. With edgar: 90% / 90%. Edgar was called on only 1–2 questions per run, so the gap (1–2 questions) is noise: the tool makes no measurable difference. In no-edgar r2, both human hand-offs were *correct* answers.
-- [ ] ⏩ **NEXT** — Research-step variants:
+- [x] Research-step variants:
   - [x] Handoff (D36: quick → deep).
     - [x] 📘 `lessons/w3_step2_handoff.py`: on 4 questions quick handed off exactly where the Router says `analysis`. `--break` (contradictory jobs, mesh): quick → deep → quick, then quick *wrote* "I'm handing off" without calling the tool. The run ended with no answer and no error (3/3).
     - [x] 🏗️ `orchestration/handoff.py`, `build_workflow(research="handoff")`, `evals.run --research handoff`. A run that ends without a valid Answer becomes found=false (test). Dev: 93% / 90%, $2.03 / $2.07, p50 16–17 s, vs the Router workflow at 90% / 90%, $2.45 / $1.94, 14 s: a tie. Quick kept every Router-`lookup` (17/17) but also kept 5–8 `analysis` questions per run; one of those (`00494`) was wrong both runs.
@@ -115,8 +115,9 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] Group chat maker-checker.
     - [x] 📘 `lessons/w3_step4_maker_checker.py`: structured `{approved, issues}` checker works in a group chat (needs `output_from="all"` to see turns). Control `00678`: approved first look (3 turns). Wrong-answer `01290`: checker rejected 3 drafts in a row, never converged, `max_rounds=6` ended it. `--break` (checker may never approve): the same 7 turns, ended only by `max_rounds`.
     - [x] 🏗️ `orchestration/maker_checker.py`, `evals.run --research makerchecker` (D38). Dev: 88% / 83% text, $3.14, p50 19 s / p95 45 s, 0 errors. No better than the single agent (93%, $0.95) or Handoff (~$2.05).
-  - [ ] Magentic (multi-company compare).
-- [ ] Terminations: max turns, token/$ budget, keyword, tool-call cap, timeout, composite, and mid-run cancellation.
+  - [x] Magentic (multi-company compare). Lesson only: dev has no multi-company question to score (8 companies, 0 comparisons), so no product step or eval.
+    - `lessons/w3_step5_magentic.py`: Boeing vs Corning FY2022 tax rate, hand-written task, no gold. Manager sent boeing_analyst, then corning_analyst, then asked boeing_analyst to write the comparison (−0.6% vs 22.9%, both cited to p. 77). 39 s, 3 specialist turns, under $0.50.
+- [ ] ⏩ **NEXT** — Terminations: max turns, token/$ budget, keyword, tool-call cap, timeout, composite, and mid-run cancellation.
 - [ ] Break it: remove a termination condition and watch the loop run away.
 - [ ] Approvals:
   - [ ] A tool with `approval_mode` set.
