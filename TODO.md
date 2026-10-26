@@ -117,15 +117,17 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
     - [x] 🏗️ `orchestration/maker_checker.py`, `evals.run --research makerchecker` (D38). Dev: 88% / 83% text, $3.14, p50 19 s / p95 45 s, 0 errors. No better than the single agent (93%, $0.95) or Handoff (~$2.05).
   - [x] Magentic (multi-company compare). Lesson only: dev has no multi-company question to score (8 companies, 0 comparisons), so no product step or eval.
     - `lessons/w3_step5_magentic.py`: Boeing vs Corning FY2022 tax rate, hand-written task, no gold. Manager sent boeing_analyst, then corning_analyst, then asked boeing_analyst to write the comparison (−0.6% vs 22.9%, both cited to p. 77). 39 s, 3 specialist turns, under $0.50.
-- [ ] ⏩ **NEXT** — Terminations: max turns, token/$ budget, keyword, tool-call cap, timeout, composite, and mid-run cancellation.
+- [x] Terminations: max turns, token/$ budget, keyword, tool-call cap, timeout, composite, and mid-run cancellation.
   - [x] 📘 `lessons/w3_step6_limit_scope.py`: the client's tool-call cap (3) is per agent turn, not per chat: 8 pings over 4 turns. Only `max_rounds` covers the whole conversation today.
   - [x] 🏗️ Whole-run budget (D39, option A): `middleware/budget.py` (`RunBudget`: $, tool calls, wall-clock; one object shared by all agents via `middleware=budget.middleware()`), 5 offline tests.
     - `lessons/w3_step7_budget.py`: same ping chat as step 6 with a shared budget of 5 calls: exactly 5 pings, then `BudgetExceeded` reached our `try/except` cleanly through the group chat. $0.0002.
     - Not yet wired into the workflow graph or `evals.run` (a later step: it needs a per-question budget).
   - [x] 📘 Mid-run cancellation: `lessons/w3_step8_cancel.py`: `task.cancel()` after ping 2 (inside a 1 s tool) ended the group chat at once with `CancelledError`; 15 s later still 2 pings, so no leaked tasks. Our tools are read-only; a tool with side effects needs a compensating action or idempotency (user's point, saga pattern).
-- [ ] Break it: remove a termination condition and watch the loop run away.
+  - [x] 📘 Composite: `lessons/w3_step9_composite.py`: one wrapper reports which of 4 exits fired (approved / max_rounds / budget / cancelled); all 4 correct on the nano model. Approval wins a tie with the budget (user's call). The approved-vs-max_rounds split reads the orchestrator's closing text, so it is fragile.
+- [x] Break it: remove a termination condition and watch the loop run away.
+  - 📘 `lessons/w3_step10_runaway.py`: step 9's maker + stubborn checker with no `max_rounds` and no `termination_condition` (both default to `None` in MAF, so no error or warning). It ran until our outside fail-safe (`asyncio.wait_for`, 20 s, option A) stopped it: 13 turns, $0.0007 on nano. The maker said the same sentence again and again and the checker repeated its objection, so the loop never made progress. Straight-line extrapolation: ~2,300 turns, ~$0.13/hour on nano. The real cost is higher because the prompt grows every turn.
 - [ ] Approvals:
-  - [ ] A tool with `approval_mode` set.
+  - [ ] ⏩ **NEXT** — A tool with `approval_mode` set.
   - [ ] Workflow `request_info` for low-confidence claims, surviving a restart.
 - [ ] Decisions to discuss:
   - Workflow vs autonomous orchestration.
