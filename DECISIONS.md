@@ -657,3 +657,16 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Choice:** A (user's call).
 
 **Why:** it's the only option that covers the patterns whose inner turns we don't control, and it is the same middleware idea the Week 4 cost meter needs.
+
+## D40 — Which tool needs approval: a side-effect tool (2026-10-25)
+
+**Problem:** the first Approvals step needs a tool marked `approval_mode="always_require"`. All our current tools only read.
+
+**Options:**
+- **A. A new `save_report` tool that writes the answer to a file.** A real side effect, the same shape as the Bcdr agent posting a comment on an assessment.
+- B. The edgar MCP tool. It reaches an outside service but only reads, so approval there is mostly friction.
+- C. The page-image tool, as a cost gate. A real pattern, but a budget (D39) does that job better.
+
+**Choice:** A (user's call).
+
+**Why:** approval belongs on actions that change something outside the agent. Read-only calls are better covered by budgets and limits.

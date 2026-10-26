@@ -127,8 +127,9 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
 - [x] Break it: remove a termination condition and watch the loop run away.
   - 📘 `lessons/w3_step10_runaway.py`: step 9's maker + stubborn checker with no `max_rounds` and no `termination_condition` (both default to `None` in MAF, so no error or warning). It ran until our outside fail-safe (`asyncio.wait_for`, 20 s, option A) stopped it: 13 turns, $0.0007 on nano. The maker said the same sentence again and again and the checker repeated its objection, so the loop never made progress. Straight-line extrapolation: ~2,300 turns, ~$0.13/hour on nano. The real cost is higher because the prompt grows every turn.
 - [ ] Approvals:
-  - [ ] ⏩ **NEXT** — A tool with `approval_mode` set.
-  - [ ] Workflow `request_info` for low-confidence claims, surviving a restart.
+  - [x] A tool with `approval_mode` set.
+    - 📘 `lessons/w3_step11_tool_approval.py` (D40: `save_report` writes a file, a side effect). `run()` returned early with the request instead of running the tool; the answer went back with a second `run()` on the same session. Yes → the file was written. No → no file, but the agent told the user "I can't access the filesystem", which hides the fact that a human refused.
+  - [ ] ⏩ **NEXT** — Workflow `request_info` for low-confidence claims, surviving a restart.
 - [ ] Decisions to discuss:
   - Workflow vs autonomous orchestration.
   - Pattern selection criteria.
