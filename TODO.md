@@ -130,7 +130,9 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] A tool with `approval_mode` set.
     - 📘 `lessons/w3_step11_tool_approval.py` (D40: `save_report` writes a file, a side effect). `run()` returned early with the request instead of running the tool; the answer went back with a second `run()` on the same session. Yes → the file was written. No → no file, but the agent never said a human refused: in one run it claimed "I can't access the filesystem", in the user's run its final words were the same as when approved.
     - [x] Fix (option B): code records each approval decision next to the answer, so a refusal shows whatever the model writes. Rerun: the model again said "I can't run the save operation here", and the code record said `save_report: DECLINED by reviewer`.
-  - [ ] ⏩ **NEXT** — Workflow `request_info` for low-confidence claims, surviving a restart.
+  - [ ] Workflow `request_info` for low-confidence claims, surviving a restart (D41: low confidence OR the Verifier sends it to a human).
+    - [x] 📘 `lessons/w3_step12_approval_restart.py` (no model calls): `start` paused at `request_info` and the process exited; `resume y` in a new process found the pending request in the latest checkpoint and answered it with one `run(checkpoint_id=..., responses=...)` → APPROVED. A second `resume` from the latest checkpoint was refused ("No pending requests"). Break it: `resume-old n` from the *older* paused checkpoint was accepted → REJECTED. One question, two opposite decisions. The framework guards only the latest checkpoint; preventing a double answer is our job.
+    - [ ] ⏩ **NEXT** — 🏗️ Product: `workflow.py` resume from a checkpoint in a new process; low `confidence` also goes to `human_review`; guard against answering the same request twice; evals record `confidence`.
 - [ ] Decisions to discuss:
   - Workflow vs autonomous orchestration.
   - Pattern selection criteria.

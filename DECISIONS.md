@@ -670,3 +670,16 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Choice:** A (user's call).
 
 **Why:** approval belongs on actions that change something outside the agent. Read-only calls are better covered by budgets and limits.
+
+## D41 — What sends an answer to a human: low confidence OR the Verifier (2026-10-25)
+
+**Problem:** Approvals item 2 asks for `request_info` on low-confidence claims. Today only the Verifier sends answers to a human (2 failed checks, D31).
+
+**Options:**
+- A. The model's own `confidence == "low"` sends it to a human, even if the Verifier passed it. Simple, but self-reported confidence is often poorly calibrated.
+- B. Only the Verifier, as today. No new trigger.
+- **C. Either one triggers review, and evals start recording `confidence`.**
+
+**Choice:** C (user's call).
+
+**Why:** no past result recorded `confidence`, so we can't yet say whether "low" predicts wrong answers. C adds the cheap trigger, and the next dev run measures whether it earns its place (how many extra reviews, and how many of those were really wrong).
