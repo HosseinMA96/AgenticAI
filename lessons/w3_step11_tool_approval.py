@@ -39,15 +39,18 @@ async def run_once(approve: bool) -> None:
     session = agent.create_session()  # the paused call lives in this session's history
     result = await agent.run(TASK, session=session)
 
+    decisions = []  # our code made these calls, so our code reports them: never trust the model's retelling
     while result.user_input_requests:  # the run paused: the model asked for a tool that needs approval
         answers = []
         for req in result.user_input_requests:
             print(f"  ⏸  agent wants {req.function_call.name}({req.function_call.arguments})")
             print(f"  👤 human says: {'yes' if approve else 'no'}")
             answers.append(req.to_function_approval_response(approved=approve))
+            decisions.append(f"{req.function_call.name}: {'approved' if approve else 'DECLINED by reviewer'}")
         result = await agent.run(Message("user", answers), session=session)
 
     print(f"  agent's final words: {result.text!r}")
+    print(f"  approvals (from code): {decisions or 'none requested'}")
 
 
 async def main() -> None:

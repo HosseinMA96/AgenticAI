@@ -128,7 +128,8 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - 📘 `lessons/w3_step10_runaway.py`: step 9's maker + stubborn checker with no `max_rounds` and no `termination_condition` (both default to `None` in MAF, so no error or warning). It ran until our outside fail-safe (`asyncio.wait_for`, 20 s, option A) stopped it: 13 turns, $0.0007 on nano. The maker said the same sentence again and again and the checker repeated its objection, so the loop never made progress. Straight-line extrapolation: ~2,300 turns, ~$0.13/hour on nano. The real cost is higher because the prompt grows every turn.
 - [ ] Approvals:
   - [x] A tool with `approval_mode` set.
-    - 📘 `lessons/w3_step11_tool_approval.py` (D40: `save_report` writes a file, a side effect). `run()` returned early with the request instead of running the tool; the answer went back with a second `run()` on the same session. Yes → the file was written. No → no file, but the agent told the user "I can't access the filesystem", which hides the fact that a human refused.
+    - 📘 `lessons/w3_step11_tool_approval.py` (D40: `save_report` writes a file, a side effect). `run()` returned early with the request instead of running the tool; the answer went back with a second `run()` on the same session. Yes → the file was written. No → no file, but the agent never said a human refused: in one run it claimed "I can't access the filesystem", in the user's run its final words were the same as when approved.
+    - [x] Fix (option B): code records each approval decision next to the answer, so a refusal shows whatever the model writes. Rerun: the model again said "I can't run the save operation here", and the code record said `save_report: DECLINED by reviewer`.
   - [ ] ⏩ **NEXT** — Workflow `request_info` for low-confidence claims, surviving a restart.
 - [ ] Decisions to discuss:
   - Workflow vs autonomous orchestration.
