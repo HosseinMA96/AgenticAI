@@ -4,14 +4,17 @@
        └─lookup/analysis─► Research ─► Verifier ─supported──► report ──► (Report)
                               ▲           ├─failed, 1st try─┘ (back to Research, with the problem)
                               └───────────┘
-                                          └─failed, 2nd try─► human_review ─► report
+                                          ├─failed, 2nd try─────────► human_review ─► report
+                                          └─supported, low confidence─┘ (D41)
 
     uv run python -m finsight.orchestration.workflow <FILING_ID> "<question>"
+    uv run python -m finsight.orchestration.workflow --resume     # answer a paused run from a new process
 
 Each node calls an existing function and sends a typed message (messages.py), so every
 agent sees only what it is handed. Checkpoints are written after each superstep.
 """
 
+import sys
 from pathlib import Path
 
 from agent_framework import (
@@ -139,7 +142,8 @@ class HumanReviewNode(Executor):
     @handler
     async def ask_human(self, c: Checked, ctx: WorkflowContext) -> None:
         # Pauses the run. The caller answers with workflow.run(responses={request_id: ReviewDecision}).
-        await ctx.request_info(ReviewRequest(checked=c), ReviewDecision)
+        reason = "low_confidence" if c.verdict.supported else "failed_twice"
+        await ctx.request_info(ReviewRequest(checked=c, reason=reason), ReviewDecision)
 
     @response_handler
     async def resolve(self, req: ReviewRequest, d: ReviewDecision, ctx: WorkflowContext[Report]) -> None:
@@ -181,9 +185,11 @@ def build_workflow(*research_tools, research: str = "router", checkpoint_storage
         ])
         .add_edge(research, verifier)
         .add_switch_case_edge_group(verifier, [
-            Case(condition=lambda c: c.verdict.supported, target=report),
-            Case(condition=lambda c: c.draft.attempt == 1, target=research),  # one retry before a human (D31)
-            Default(target=human),
+            # D41: the Verifier passing is not enough when the analyst itself says "low": that falls to a human.
+            # (One switch can't have two cases pointing at the same node, so human is only the Default.)
+            Case(condition=lambda c: c.verdict.supported and c.draft.answer.confidence != "low", target=report),
+            Case(condition=lambda c: not c.verdict.supported and c.draft.attempt == 1, target=research),  # D31
+            Default(target=human),  # failed twice, or supported with low confidence
         ])
         .add_edge(human, report)
         .build()
@@ -195,28 +201,53 @@ def checkpoint_storage() -> FileCheckpointStorage:
     return FileCheckpointStorage(CHECKPOINTS, allowed_checkpoint_types=CHECKPOINT_TYPES)
 
 
-async def _main(doc_name: str, question: str) -> None:
-    async with edgar_stdio() as edgar:
-        workflow = build_workflow(edgar, checkpoint_storage=checkpoint_storage())
-        result = await workflow.run(Question(doc_name=doc_name, question=question))
-        # A paused run returns with a pending request; answer it in the terminal and resume.
-        while requests := result.get_request_info_events():
-            req = requests[0]
-            c = req.data.checked
-            print(f"\n⚠️  Failed verification twice.\n  answer: {c.draft.answer.answer}\n  problem: {c.verdict.problem}")
-            approved = input("  Approve anyway? [y/N] ").strip().lower() == "y"
-            note = input("  Note: ").strip()
-            result = await workflow.run(responses={req.request_id: ReviewDecision(approved=approved, note=note)})
+def _ask_reviewer(req: ReviewRequest) -> ReviewDecision:
+    c = req.checked
+    why = {"failed_twice": "Failed verification twice", "low_confidence": "Verified, but the analyst's confidence is low"}
+    print(f"\n⚠️  {why[req.reason]}.\n  answer: {c.draft.answer.answer}\n  problem: {c.verdict.problem}")
+    approved = input("  Approve? [y/N] ").strip().lower() == "y"
+    return ReviewDecision(approved=approved, note=input("  Note: ").strip())
+
+
+def _print_report(result) -> None:
     for e in result:
         if e.type == "executor_completed":
             print(f"  ✓ {e.executor_id}")
     print(result.get_outputs()[-1].model_dump_json(indent=2, exclude={"question", "steps"}))
 
 
+async def _main(doc_name: str, question: str) -> None:
+    async with edgar_stdio() as edgar:
+        workflow = build_workflow(edgar, checkpoint_storage=checkpoint_storage())
+        result = await workflow.run(Question(doc_name=doc_name, question=question))
+        # A paused run returns with a pending request; answer it in the terminal and resume.
+        # Ctrl-C at the prompt is fine: the pause is in the checkpoint, and --resume picks it up (lesson w3_step12).
+        while requests := result.get_request_info_events():
+            req = requests[0]
+            result = await workflow.run(responses={req.request_id: _ask_reviewer(req.data)})
+    _print_report(result)
+
+
+async def _resume() -> None:
+    """A new process answers the latest paused run. It rebuilds the same graph: MAF checks its hash."""
+    storage = checkpoint_storage()
+    latest = await storage.get_latest(workflow_name="finsight")
+    if latest is None or not latest.pending_request_info_events:
+        sys.exit("nothing is waiting for a reviewer")
+    (request_id, event), = latest.pending_request_info_events.items()  # one question per run, so one request
+    decision = _ask_reviewer(event.data)
+    async with edgar_stdio() as edgar:
+        workflow = build_workflow(edgar, checkpoint_storage=storage)
+        result = await workflow.run(checkpoint_id=latest.checkpoint_id, responses={request_id: decision})
+    _print_report(result)
+
+
 if __name__ == "__main__":
     import asyncio
-    import sys
 
-    if len(sys.argv) != 3:
-        sys.exit('usage: python -m finsight.orchestration.workflow <FILING_ID> "<question>"')
-    asyncio.run(_main(sys.argv[1], sys.argv[2]))
+    if sys.argv[1:] == ["--resume"]:
+        asyncio.run(_resume())
+    elif len(sys.argv) == 3:
+        asyncio.run(_main(sys.argv[1], sys.argv[2]))
+    else:
+        sys.exit('usage: python -m finsight.orchestration.workflow <FILING_ID> "<question>"  |  --resume')

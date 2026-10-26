@@ -81,9 +81,11 @@ async def run_workflow(tools: list, row: dict, research: str = "router"):
         # D35: no human in an eval. Score what the human would have seen; don't resume with a made-up decision.
         c = requests[0].data.checked
         status, answer, route, verdict, attempts, steps = "needs_human", c.draft.answer, c.draft.routed.route, c.verdict, c.draft.attempt, c.steps
+        review_reason = requests[0].data.reason
     else:
         r = result.get_outputs()[-1]
         status, answer, route, verdict, attempts, steps = r.status, r.answer, r.route, r.verdict, r.attempts, r.steps
+        review_reason = None
     research_steps = [st for st in steps if st.agent == "research"]
     usage: dict = {}
     for st in steps:  # one usage dict for the whole question, so the leaderboard columns stay comparable
@@ -107,6 +109,8 @@ async def run_workflow(tools: list, row: dict, research: str = "router"):
         "attempts": attempts,
         "verified": bool(verdict and verdict.supported),
         "verifier_problem": verdict.problem if verdict else None,
+        "confidence": answer.confidence if answer else None,  # D41: does "low" predict wrong?
+        "review_reason": review_reason,
     }
 
 
@@ -168,6 +172,12 @@ def summarize_workflow(rows: list[dict]) -> dict:
         # D35: were the Verifier's final rejections right? Gold says whether those answers were wrong.
         "needs_human": len(human),
         "needs_human_but_correct": sum(r["correct"] for r in human),
+        "needs_human_by_reason": {why: {"n": sum(r["review_reason"] == why for r in human),
+                                        "correct": sum(r["correct"] for r in human if r["review_reason"] == why)}
+                                  for why in ("failed_twice", "low_confidence")},
+        # D41: if "low" is right less often than "high", the model's self-report carries signal.
+        "by_confidence": {lvl: {"n": len(rs), "accuracy": _rate(rs)} for lvl in ("high", "medium", "low")
+                          if (rs := [r for r in ok if r.get("confidence") == lvl])},
         "verified_but_wrong": sum(r["status"] == "verified" and not r["correct"] for r in ok),
         "cost_by_agent": {a: sum(r["cost_by_agent"].get(a, 0.0) for r in ok) for a in sorted(agents)},
         # Handoff only: who answered the first attempt, and how that lines up with the Router's label.

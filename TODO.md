@@ -132,7 +132,11 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
     - [x] Fix (option B): code records each approval decision next to the answer, so a refusal shows whatever the model writes. Rerun: the model again said "I can't run the save operation here", and the code record said `save_report: DECLINED by reviewer`.
   - [ ] Workflow `request_info` for low-confidence claims, surviving a restart (D41: low confidence OR the Verifier sends it to a human).
     - [x] 📘 `lessons/w3_step12_approval_restart.py` (no model calls): `start` paused at `request_info` and the process exited; `resume y` in a new process found the pending request in the latest checkpoint and answered it with one `run(checkpoint_id=..., responses=...)` → APPROVED. A second `resume` from the latest checkpoint was refused ("No pending requests"). Break it: `resume-old n` from the *older* paused checkpoint was accepted → REJECTED. One question, two opposite decisions. The framework guards only the latest checkpoint; preventing a double answer is our job.
-    - [ ] ⏩ **NEXT** — 🏗️ Product: `workflow.py` resume from a checkpoint in a new process; low `confidence` also goes to `human_review`; guard against answering the same request twice; evals record `confidence`.
+    - [ ] 🏗️ Product:
+      - [x] Low `confidence` also goes to `human_review` (D41), even when verified. `ReviewRequest.reason` says why (`failed_twice` / `low_confidence`). MAF refused two switch cases pointing at the same node (`EdgeDuplicationError`), so `human` stays the Default. Evals record `confidence` and `review_reason`; the summary adds `by_confidence` and `needs_human_by_reason`. Test added.
+      - [x] `python -m finsight.orchestration.workflow --resume`: a new process answers the latest paused run. Offline test: a freshly built workflow resumes from the checkpoint → `human_approved` (99 pass). Live: `01290` was verified with high confidence this time, so it didn't pause; the restart is proven offline and in lesson step 12.
+      - [ ] ⏩ **NEXT** — Guard against answering the same request twice (decision first).
+      - [ ] Dev eval to measure D41: how many extra reviews low confidence adds, and how many of those were really wrong.
 - [ ] Decisions to discuss:
   - Workflow vs autonomous orchestration.
   - Pattern selection criteria.

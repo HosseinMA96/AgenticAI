@@ -17,8 +17,8 @@ from finsight.orchestration import workflow as wf
 from finsight.orchestration.messages import Question, ReviewDecision, ReviewRequest
 
 
-def answer() -> Answer:
-    return Answer(reasoning="r", found=True, answer="0.83", value=0.83, unit="ratio", citations=[57], confidence="medium")
+def answer(confidence="medium") -> Answer:
+    return Answer(reasoning="r", found=True, answer="0.83", value=0.83, unit="ratio", citations=[57], confidence=confidence)
 
 
 def fake(value) -> SimpleNamespace:
@@ -44,7 +44,7 @@ def stubs(monkeypatch):
                 Answer(reasoning="r", found=False, answer="none", value=1.0, unit="x", citations=[1], confidence="low")
             except ValidationError as v:
                 raise ChatClientException("failed to complete the prompt") from v
-        return fake(answer())
+        return fake(answer(s.get("confidence", "medium")))
 
     async def verify(agent, doc, q, a):
         ok = s["supported"][min(s["verifies"], len(s["supported"]) - 1)]
@@ -106,6 +106,25 @@ def test_two_failures_pause_for_a_human_then_resume(stubs, tmp_path):
     result = run(workflow, responses={req.request_id: ReviewDecision(approved=False, note="bad page")})
     report = result.get_outputs()[-1]
     assert (report.status, report.reviewer_note) == ("human_rejected", "bad page")
+
+
+def test_low_confidence_goes_to_a_human_even_when_verified(stubs):
+    stubs["confidence"] = "low"
+    result = run(wf.build_workflow(), message=Q)
+    assert result.get_outputs() == [] and len(stubs["asks"]) == 1  # no retry: the Verifier passed it
+    assert result.get_request_info_events()[0].data.reason == "low_confidence"
+
+
+def test_a_new_workflow_object_resumes_from_the_checkpoint(stubs, tmp_path):
+    # A restart: the workflow that paused is gone; a freshly built one answers from the checkpoint alone.
+    stubs["supported"] = [False]
+    storage = wf.FileCheckpointStorage(tmp_path, allowed_checkpoint_types=wf.CHECKPOINT_TYPES)
+    run(wf.build_workflow(checkpoint_storage=storage), message=Q)
+    saved = asyncio.run(storage.get_latest(workflow_name="finsight"))
+    (request_id, _), = saved.pending_request_info_events.items()
+    result = run(wf.build_workflow(checkpoint_storage=storage), checkpoint_id=saved.checkpoint_id,
+                 responses={request_id: ReviewDecision(approved=True)})
+    assert result.get_outputs()[-1].status == "human_approved"
 
 
 def test_a_broken_retry_keeps_the_first_answer(stubs):

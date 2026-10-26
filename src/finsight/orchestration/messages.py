@@ -50,8 +50,9 @@ class Checked(BaseModel):
 
 
 class ReviewRequest(BaseModel):
-    """What the human sees: the answer that failed verification twice, and why."""
+    """What the human sees: the answer, the Verifier's verdict, and why it came to a human (D41)."""
     checked: Checked
+    reason: Literal["failed_twice", "low_confidence"] = "failed_twice"
 
 
 class ReviewDecision(BaseModel):
