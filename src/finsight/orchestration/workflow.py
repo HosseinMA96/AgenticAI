@@ -34,7 +34,7 @@ from finsight.evidence import unread_citations
 from finsight.limits import limit_hit
 from finsight.models import Verdict
 from finsight.orchestration.concurrent import ask_concurrent, build_concurrent
-from finsight.orchestration.decisions import AlreadyDecided, record
+from finsight.orchestration.decisions import AlreadyDecided, check, record
 from finsight.orchestration.handoff import ask_handoff, build_handoff
 from finsight.orchestration.maker_checker import ask_maker_checker, build_maker_checker
 from finsight.orchestration.messages import (
@@ -238,8 +238,9 @@ async def _resume(checkpoint_id: str | None = None) -> None:
     if saved is None or not saved.pending_request_info_events:
         sys.exit("nothing is waiting for a reviewer")
     (request_id, event), = saved.pending_request_info_events.items()  # one question per run, so one request
-    decision = _ask_reviewer(event.data)
     try:
+        check(DECISIONS, request_id)  # before the prompt, so the reviewer's time isn't wasted
+        decision = _ask_reviewer(event.data)
         record(DECISIONS, request_id, decision)  # claim first, then resume: a crash after this needs a manual fix
     except AlreadyDecided as e:
         sys.exit(f"refused: {e}")

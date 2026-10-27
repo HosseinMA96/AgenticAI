@@ -20,6 +20,14 @@ class AlreadyDecided(Exception):
         self.first = first
 
 
+def check(folder: Path, request_id: str) -> None:
+    """Fail fast, before the reviewer reads the claim. Not a guard on its own: two reviewers
+    can both pass it at the same moment, so `record` still makes the final call."""
+    path = folder / f"{request_id}.json"
+    if path.exists():
+        raise AlreadyDecided(request_id, json.loads(path.read_text()))
+
+
 def record(folder: Path, request_id: str, decision: ReviewDecision) -> None:
     """Claim the request for this decision, or raise AlreadyDecided with the first one."""
     folder.mkdir(parents=True, exist_ok=True)

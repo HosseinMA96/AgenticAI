@@ -2,7 +2,7 @@
 
 import pytest
 
-from finsight.orchestration.decisions import AlreadyDecided, record
+from finsight.orchestration.decisions import AlreadyDecided, check, record
 from finsight.orchestration.messages import ReviewDecision
 
 
@@ -22,3 +22,10 @@ def test_second_answer_is_refused_and_the_first_one_kept(tmp_path):
 def test_different_requests_dont_block_each_other(tmp_path):
     record(tmp_path, "req-1", ReviewDecision(approved=True))
     record(tmp_path, "req-2", ReviewDecision(approved=False))
+
+
+def test_check_refuses_before_the_reviewer_is_asked(tmp_path):
+    check(tmp_path, "req-1")  # nothing decided yet: passes
+    record(tmp_path, "req-1", ReviewDecision(approved=True))
+    with pytest.raises(AlreadyDecided):
+        check(tmp_path, "req-1")
