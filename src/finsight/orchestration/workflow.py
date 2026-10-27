@@ -9,6 +9,7 @@
 
     uv run python -m finsight.orchestration.workflow <FILING_ID> "<question>"
     uv run python -m finsight.orchestration.workflow --resume     # answer a paused run from a new process
+    uv run python -m finsight.orchestration.workflow --resume <CHECKPOINT_ID>   # an older one (refused if decided, D42)
 
 Each node calls an existing function and sends a typed message (messages.py), so every
 agent sees only what it is handed. Checkpoints are written after each superstep.
@@ -33,6 +34,7 @@ from finsight.evidence import unread_citations
 from finsight.limits import limit_hit
 from finsight.models import Verdict
 from finsight.orchestration.concurrent import ask_concurrent, build_concurrent
+from finsight.orchestration.decisions import AlreadyDecided, record
 from finsight.orchestration.handoff import ask_handoff, build_handoff
 from finsight.orchestration.maker_checker import ask_maker_checker, build_maker_checker
 from finsight.orchestration.messages import (
@@ -40,6 +42,7 @@ from finsight.orchestration.messages import (
 )
 
 CHECKPOINTS = Path(__file__).parents[3] / "checkpoints"  # gitignored
+DECISIONS = CHECKPOINTS / "decisions"  # one file per answered review request (D42)
 
 # Checkpoints are pickled, and MAF only unpickles listed types. A missing type fails
 # silently (found in BcdrSequential), so every message type and everything inside it is listed.
@@ -228,26 +231,30 @@ async def _main(doc_name: str, question: str) -> None:
     _print_report(result)
 
 
-async def _resume() -> None:
-    """A new process answers the latest paused run. It rebuilds the same graph: MAF checks its hash."""
+async def _resume(checkpoint_id: str | None = None) -> None:
+    """A new process answers a paused run (the latest by default). It rebuilds the same graph: MAF checks its hash."""
     storage = checkpoint_storage()
-    latest = await storage.get_latest(workflow_name="finsight")
-    if latest is None or not latest.pending_request_info_events:
+    saved = await (storage.load(checkpoint_id) if checkpoint_id else storage.get_latest(workflow_name="finsight"))
+    if saved is None or not saved.pending_request_info_events:
         sys.exit("nothing is waiting for a reviewer")
-    (request_id, event), = latest.pending_request_info_events.items()  # one question per run, so one request
+    (request_id, event), = saved.pending_request_info_events.items()  # one question per run, so one request
     decision = _ask_reviewer(event.data)
+    try:
+        record(DECISIONS, request_id, decision)  # claim first, then resume: a crash after this needs a manual fix
+    except AlreadyDecided as e:
+        sys.exit(f"refused: {e}")
     async with edgar_stdio() as edgar:
         workflow = build_workflow(edgar, checkpoint_storage=storage)
-        result = await workflow.run(checkpoint_id=latest.checkpoint_id, responses={request_id: decision})
+        result = await workflow.run(checkpoint_id=saved.checkpoint_id, responses={request_id: decision})
     _print_report(result)
 
 
 if __name__ == "__main__":
     import asyncio
 
-    if sys.argv[1:] == ["--resume"]:
-        asyncio.run(_resume())
+    if sys.argv[1:2] == ["--resume"] and len(sys.argv) <= 3:
+        asyncio.run(_resume(*sys.argv[2:]))
     elif len(sys.argv) == 3:
         asyncio.run(_main(sys.argv[1], sys.argv[2]))
     else:
-        sys.exit('usage: python -m finsight.orchestration.workflow <FILING_ID> "<question>"  |  --resume')
+        sys.exit('usage: python -m finsight.orchestration.workflow <FILING_ID> "<question>"  |  --resume [CHECKPOINT_ID]')

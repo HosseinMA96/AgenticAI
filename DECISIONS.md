@@ -683,3 +683,16 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Choice:** C (user's call).
 
 **Why:** no past result recorded `confidence`, so we can't yet say whether "low" predicts wrong answers. C adds the cheap trigger, and the next dev run measures whether it earns its place (how many extra reviews, and how many of those were really wrong).
+
+## D42 — Stop a review request being answered twice: a decision log (2026-10-26)
+
+**Problem:** lesson w3_step12 showed that MAF refuses a second answer only on the *latest* checkpoint. An older checkpoint still holds the same pending request, so one question got APPROVED and then REJECTED. The `--resume` CLI only uses the latest checkpoint, but any caller with an older `checkpoint_id` gets through, and so do two reviewers who answer at the same moment.
+
+**Options:**
+- **A. Decision log.** Before resuming, claim the `request_id` by creating `checkpoints/decisions/<request_id>.json` atomically (`O_CREAT | O_EXCL`). If the file already exists, refuse and show the first decision.
+- B. Delete older checkpoints after a decision. You lose history, and two reviewers can still race on the latest checkpoint.
+- C. Refuse any checkpoint that isn't the latest. Same race problem, and it only guards the paths that remember to check.
+
+**Choice:** A (user's call).
+
+**Why:** it is the only option that also stops the race, and it leaves an audit trail. It's an idempotency key (the saga point from w3_step8). It carries over to Cosmos DB in the final step, where "create only if missing" is built in. Known gap: we claim *before* resuming, so if the resume crashes after the claim, the request stays claimed and needs a manual fix. That's safer than the opposite order, which can give two answers.

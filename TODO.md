@@ -136,6 +136,8 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
       - [x] Low `confidence` also goes to `human_review` (D41), even when verified. `ReviewRequest.reason` says why (`failed_twice` / `low_confidence`). MAF refused two switch cases pointing at the same node (`EdgeDuplicationError`), so `human` stays the Default. Evals record `confidence` and `review_reason`; the summary adds `by_confidence` and `needs_human_by_reason`. Test added.
       - [x] `python -m finsight.orchestration.workflow --resume`: a new process answers the latest paused run. Offline test: a freshly built workflow resumes from the checkpoint → `human_approved` (99 pass). Live: `01290` was verified with high confidence this time, so it didn't pause; the restart is proven offline and in lesson step 12.
       - [ ] ⏩ **NEXT** — Guard against answering the same request twice (decision first).
+        - [x] Decision D42 (option A: decision log). `orchestration/decisions.py`: `record()` claims `checkpoints/decisions/<request_id>.json` with `O_CREAT | O_EXCL`, and a second answer raises `AlreadyDecided`. `--resume [CHECKPOINT_ID]` claims before it resumes. 3 offline tests (102 pass).
+        - [ ] Break it live: answer a paused run with `--resume`, then `--resume <older id>` → refused.
       - [ ] Dev eval to measure D41: how many extra reviews low confidence adds, and how many of those were really wrong.
 - [ ] Decisions to discuss:
   - Workflow vs autonomous orchestration.
