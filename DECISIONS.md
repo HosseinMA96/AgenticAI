@@ -684,6 +684,10 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 
 **Why:** no past result recorded `confidence`, so we can't yet say whether "low" predicts wrong answers. C adds the cheap trigger, and the next dev run measures whether it earns its place (how many extra reviews, and how many of those were really wrong).
 
+**Result (2026-10-26, `workflow-d41-r1`, 42 dev):** the analyst said `low` on 0/42 (high 26, medium 16), so the trigger added 0 reviews. Confidence didn't predict errors: high 92% vs medium 94%, and the 3 wrong answers were high, high, medium. 93%, $2.01, the same as `workflow-edgar-v2`.
+
+**Follow-up choice:** keep the trigger, marked unproven (option A; user's call). Other options were B (remove it as a dead path) and C (replace it with an outside signal such as a second model's disagreement, about 2× research cost). **Why:** it costs nothing, and `needs_human_by_reason` will show if it ever fires (another model, or Bcdr data). Lesson: don't route on the agent's self-reported confidence. An outside check has to make that call.
+
 ## D42 — Stop a review request being answered twice: a decision log (2026-10-26)
 
 **Problem:** lesson w3_step12 showed that MAF refuses a second answer only on the *latest* checkpoint. An older checkpoint still holds the same pending request, so one question got APPROVED and then REJECTED. The `--resume` CLI only uses the latest checkpoint, but any caller with an older `checkpoint_id` gets through, and so do two reviewers who answer at the same moment.

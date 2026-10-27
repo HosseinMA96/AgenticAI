@@ -126,21 +126,23 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] 📘 Composite: `lessons/w3_step9_composite.py`: one wrapper reports which of 4 exits fired (approved / max_rounds / budget / cancelled); all 4 correct on the nano model. Approval wins a tie with the budget (user's call). The approved-vs-max_rounds split reads the orchestrator's closing text, so it is fragile.
 - [x] Break it: remove a termination condition and watch the loop run away.
   - 📘 `lessons/w3_step10_runaway.py`: step 9's maker + stubborn checker with no `max_rounds` and no `termination_condition` (both default to `None` in MAF, so no error or warning). It ran until our outside fail-safe (`asyncio.wait_for`, 20 s, option A) stopped it: 13 turns, $0.0007 on nano. The maker said the same sentence again and again and the checker repeated its objection, so the loop never made progress. Straight-line extrapolation: ~2,300 turns, ~$0.13/hour on nano. The real cost is higher because the prompt grows every turn.
-- [ ] Approvals:
+- [x] Approvals:
   - [x] A tool with `approval_mode` set.
     - 📘 `lessons/w3_step11_tool_approval.py` (D40: `save_report` writes a file, a side effect). `run()` returned early with the request instead of running the tool; the answer went back with a second `run()` on the same session. Yes → the file was written. No → no file, but the agent never said a human refused: in one run it claimed "I can't access the filesystem", in the user's run its final words were the same as when approved.
     - [x] Fix (option B): code records each approval decision next to the answer, so a refusal shows whatever the model writes. Rerun: the model again said "I can't run the save operation here", and the code record said `save_report: DECLINED by reviewer`.
-  - [ ] Workflow `request_info` for low-confidence claims, surviving a restart (D41: low confidence OR the Verifier sends it to a human).
+  - [x] Workflow `request_info` for low-confidence claims, surviving a restart (D41: low confidence OR the Verifier sends it to a human).
     - [x] 📘 `lessons/w3_step12_approval_restart.py` (no model calls): `start` paused at `request_info` and the process exited; `resume y` in a new process found the pending request in the latest checkpoint and answered it with one `run(checkpoint_id=..., responses=...)` → APPROVED. A second `resume` from the latest checkpoint was refused ("No pending requests"). Break it: `resume-old n` from the *older* paused checkpoint was accepted → REJECTED. One question, two opposite decisions. The framework guards only the latest checkpoint; preventing a double answer is our job.
-    - [ ] 🏗️ Product:
+    - [x] 🏗️ Product:
       - [x] Low `confidence` also goes to `human_review` (D41), even when verified. `ReviewRequest.reason` says why (`failed_twice` / `low_confidence`). MAF refused two switch cases pointing at the same node (`EdgeDuplicationError`), so `human` stays the Default. Evals record `confidence` and `review_reason`; the summary adds `by_confidence` and `needs_human_by_reason`. Test added.
       - [x] `python -m finsight.orchestration.workflow --resume`: a new process answers the latest paused run. Offline test: a freshly built workflow resumes from the checkpoint → `human_approved` (99 pass). Live: `01290` was verified with high confidence this time, so it didn't pause; the restart is proven offline and in lesson step 12.
       - [x] Guard against answering the same request twice (D42).
         - [x] Decision D42 (option A: decision log). `orchestration/decisions.py`: `record()` claims `checkpoints/decisions/<request_id>.json` with `O_CREAT | O_EXCL`, and a second answer raises `AlreadyDecided`. `--resume [CHECKPOINT_ID]` claims before it resumes. 3 offline tests (102 pass).
         - [x] Break it (📘 `lessons/w3_step13_double_answer.py`, stub agents, real `_resume`): `resume y` → approved; `resume <old paused id>` → refused, and the log holds 1 file (the approval). The old checkpoint still says "waiting": the log, not the checkpoint, is the source of truth.
         - [x] Fix: the refusal came only after the reviewer had typed a decision and a note. `check()` now runs before the prompt (the `O_EXCL` claim stays as the real guard against a race). Rerun: refused at once, no prompt (103 pass).
-      - [ ] ⏩ **NEXT** — Dev eval to measure D41: how many extra reviews low confidence adds, and how many of those were really wrong.
-- [ ] Decisions to discuss:
+      - [x] Dev eval to measure D41: how many extra reviews low confidence adds, and how many of those were really wrong.
+        - `workflow-d41-r1`: 93%, $2.01, p50 13 s. The model said `low` on **0/42** (high 26, medium 16), so low confidence added **0** reviews. Confidence didn't predict errors either: high 92% vs medium 94%; the 3 wrong answers were high, high, medium, all verified. The one human hand-off (`00438`, failed twice) was correct.
+      - [x] Decide what to do with the low-confidence trigger, given it never fired: keep it, marked unproven (D41 follow-up, option A).
+- [ ] ⏩ **NEXT** — Decisions to discuss:
   - Workflow vs autonomous orchestration.
   - Pattern selection criteria.
   - What deserves approval.

@@ -189,6 +189,7 @@ def build_workflow(*research_tools, research: str = "router", checkpoint_storage
         .add_edge(research, verifier)
         .add_switch_case_edge_group(verifier, [
             # D41: the Verifier passing is not enough when the analyst itself says "low": that falls to a human.
+            # Unproven: on dev the analyst said "low" on 0/42, so this edge never fired (D41 result). Kept as a free net.
             # (One switch can't have two cases pointing at the same node, so human is only the Default.)
             Case(condition=lambda c: c.verdict.supported and c.draft.answer.confidence != "low", target=report),
             Case(condition=lambda c: not c.verdict.supported and c.draft.attempt == 1, target=research),  # D31
