@@ -142,13 +142,14 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
       - [x] Dev eval to measure D41: how many extra reviews low confidence adds, and how many of those were really wrong.
         - `workflow-d41-r1`: 93%, $2.01, p50 13 s. The model said `low` on **0/42** (high 26, medium 16), so low confidence added **0** reviews. Confidence didn't predict errors either: high 92% vs medium 94%; the 3 wrong answers were high, high, medium, all verified. The one human hand-off (`00438`, failed twice) was correct.
       - [x] Decide what to do with the low-confidence trigger, given it never fired: keep it, marked unproven (D41 follow-up, option A).
-- [ ] ⏩ **NEXT** — Decisions to discuss:
+- [x] Decisions to discuss (D43–D47):
   - [x] Workflow vs autonomous orchestration (D43: single agent by default, a workflow for guarantees, autonomy only when the steps are unknown).
   - [x] Pattern selection criteria (D44: match the task shape; maker-checker only if the checker adds something new).
   - [x] Book links for D43 and D44 (§2.4.2, §2.4.3, §10.6.5, §11.3.8, §15.7).
   - [x] What deserves approval (D45: approve actions by impact × reversibility; answers go through outside checks).
-  - Fail-safe termination.
-  - Shared state vs messages.
+  - [x] Fail-safe termination (D46: 4 layers: done / no progress / budget / hard timeout; typed exit reason).
+    - [ ] ⏩ **NEXT** 🏗️ Wire per-question `RunBudget` + hard timeout into the workflow and `evals.run`; record the exit reason per row.
+  - [x] Shared state vs messages (D47: typed messages by default; guarded shared state for single-truth facts; shared chat only when the pattern needs it).
 - [ ] ✅ Comparison table of patterns × {accuracy, tokens, $, latency, turns}. A demo of an approval surviving a restart.
 - [ ] Reflect: which pattern won and why? When is one agent enough?
 - [ ] Defend it (no notes): Claude asks 3–4 interview-style questions about this week's decisions and failures (added to `INTERVIEW.md`). Answer out loud or in `NOTES.md`; Claude points out gaps.

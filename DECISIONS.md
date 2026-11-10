@@ -765,3 +765,35 @@ This is a hypothesis from the transcripts and has not been measured separately. 
 **Tradeoff:** too many approvals → approval fatigue (rubber-stamping); too few → an irreversible mistake gets through.
 
 **Bcdr:** drafting a comment is an answer (Verifier / evidence check); *posting* it where people act on it is the action that gets approval.
+
+## D46 — Week 3 discussion 4/5: fail-safe termination (2026-11-09)
+
+**Problem:** what guarantees a run always ends, even when the agent misbehaves?
+
+**Decision (option A):** four layers, each catching what the inner one misses. Every run gets layers 3 and 4, always. Every exit returns a typed reason, never parsed model text.
+1. **Normal exit:** task done (approved / verified).
+2. **Progress exit:** same draft twice in a row → stop, hand off to a human (D44).
+3. **Budget exit:** $, tool calls, rounds (`RunBudget`, D39).
+4. **Hard exit:** an outside timeout around the whole run (`asyncio.wait_for`), independent of the model.
+
+**Why (our data):**
+- w3_step10: MAF defaults `max_rounds` and `termination_condition` to `None` with no warning; only our outside timeout stopped the loop.
+- w3_step6: the client's tool-call cap is per turn, not per run.
+- w3_step9: approved vs max_rounds was read from the orchestrator's text, which is fragile.
+
+**Follow-up (product task):** wire `RunBudget` (per question) + a hard timeout into the workflow and `evals.run`; record the exit reason per row.
+
+## D47 — Week 3 discussion 5/5: shared state vs messages (2026-11-09)
+
+**Problem:** how should agents pass information to each other?
+
+**Decision (option A):**
+- **Typed messages by default** between steps: each agent sees only what it needs; cheap and testable.
+- **Guarded shared state only for single-truth facts** (approvals, budgets, checkpoints): one writer or atomic claims (`O_EXCL`).
+- **Shared conversation only when the pattern needs it** (group chat), with its growing cost capped (D46).
+
+**Why (our data):**
+- w3_step1: `context_mode="full"` passed the whole conversation, including the Router's raw JSON, to the next agent (accidental shared state).
+- D34: typed messages (`Route`, `Answer`, `Verdict`, `ReviewRequest`) made the wiring testable; removing the retry edge failed exactly 2 tests.
+- w3_step4/step10: group chat shares every turn; the prompt grows each round; costliest pattern ($3.14).
+- D42: the decision log is deliberate, guarded shared state — the source of truth over checkpoints.
