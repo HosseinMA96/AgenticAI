@@ -143,8 +143,9 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
         - `workflow-d41-r1`: 93%, $2.01, p50 13 s. The model said `low` on **0/42** (high 26, medium 16), so low confidence added **0** reviews. Confidence didn't predict errors either: high 92% vs medium 94%; the 3 wrong answers were high, high, medium, all verified. The one human hand-off (`00438`, failed twice) was correct.
       - [x] Decide what to do with the low-confidence trigger, given it never fired: keep it, marked unproven (D41 follow-up, option A).
 - [ ] ⏩ **NEXT** — Decisions to discuss:
-  - Workflow vs autonomous orchestration.
-  - Pattern selection criteria.
+  - [x] Workflow vs autonomous orchestration (D43: single agent by default, a workflow for guarantees, autonomy only when the steps are unknown).
+  - [x] Pattern selection criteria (D44: match the task shape; maker-checker only if the checker adds something new).
+  - [x] Book links for D43 and D44 (§2.4.2, §2.4.3, §10.6.5, §11.3.8, §15.7).
   - What deserves approval.
   - Fail-safe termination.
   - Shared state vs messages.

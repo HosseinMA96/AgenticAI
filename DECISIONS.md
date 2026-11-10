@@ -700,3 +700,47 @@ Per question (vector): page better on 14, fixed on 4, tie on 24.
 **Choice:** A (user's call).
 
 **Why:** it is the only option that also stops the race, and it leaves an audit trail. It's an idempotency key (the saga point from w3_step8). It carries over to Cosmos DB in the final step, where "create only if missing" is built in. Known gap: we claim *before* resuming, so if the resume crashes after the claim, the request stays claimed and needs a manual fix. That's safer than the opposite order, which can give two answers.
+
+## D43 — Week 3 discussion 1/5: single agent vs workflow vs autonomous orchestration (2026-11-01)
+
+**Problem:** this week we measured several orchestration styles on the same dev set. When does each one earn its cost?
+
+**Evidence (dev):** single agent 93%, $0.95. Workflow graph (`workflow-d41-r1`) 93%, $2.01. Handoff ~$2.05. Maker-checker group chat 88%, $3.14, which also failed to converge on `01290`. The runaway loop in w3_step10 showed autonomy without a termination condition never stops.
+
+**Options:**
+- A. Single agent: cheapest, and it tied on accuracy. A "verify your claims" instruction is only a request, so nothing guarantees it happens.
+- B. Workflow: about 2× the cost and no accuracy gain, but guarantees enforced in code: verify always runs, and the human-review edge survives a restart.
+- C. Autonomous (group chat, Magentic, Handoff): only when the steps can't be known ahead of time (e.g. multi-company comparison). The most cost and the most ways to fail.
+
+**Choice (rule):** start with a single agent. Use a workflow when a step must be *guaranteed*. Use autonomy only when the steps can't be written down ahead of time (user's reasoning).
+
+**Why:** the risk of the agent's role decides the architecture. For BCDR today the agent is advisory: it posts comments, and humans read them and decide. The human is the guarantee, so a single agent is enough. If the agent ever approves cases (even straightforward ones), its output becomes the decision. It then needs code-enforced guarantees, which means a workflow. The work platform doesn't support workflows yet, so that is a capability to ask the platform team for before auto-approve comes up.
+
+**Caveat:** "a human is always there" assumes the human actually checks. Mostly-right comments invite automation bias (Ch 13). So even in advisory mode, keep measuring comment accuracy and whether the citations hold up.
+
+**Book link:** §2.4.2 *Selection Criteria* ("well-defined, repeatable processes → workflow patterns"; "high predictability → workflow patterns"; "human oversight required → any pattern + human delegation"). §10.6.5: in the book's own harness, when a single call is enough, the multi-agent overhead "provides no benefit and actually introduces slight performance degradation". That is the same result we got.
+
+## D44 — Week 3 discussion 2/5: pattern selection criteria (2026-11-01)
+
+**Problem:** once more than one agent is justified (D43), which pattern fits?
+
+**Rule:** match the pattern to the shape of the task, not to how smart it sounds.
+- Independent parts, merged at the end → Concurrent (latency ≈ the slowest branch).
+- "Which expert owns this?" → Handoff (each transfer costs a turn).
+- Draft → critique → revise → Maker-checker, **only if the checker adds something new** (see below).
+- Steps unknown ahead of time → Magentic / plan-based (w3_step5: the manager planned Boeing → Corning → compare by itself).
+
+**Maker-checker rule (from `01290` and w3_step10):** in our lesson the maker and the checker shared the same model, the same tools and the same filings. "Wrong" gave the maker nothing new, so it redrafted the same answer, and the loop never converged ($3.14, 88% on dev vs 93%/$0.95 for the single agent). A loop converges only if each round adds information:
+1. a concrete, checkable fix ("p. 52 says X; you used Y"),
+2. a source or judge the maker doesn't have (EDGAR `companyfacts`, a different model, a human), or
+3. a no-progress exit (same draft twice → stop and send to a human, instead of waiting for `max_rounds`).
+
+This is a hypothesis from the transcripts and has not been measured separately. It matches the D41 result: self-reported confidence didn't predict errors, so an outside check has to make the call.
+
+**Book link:**
+- §2.4.2 *Selection Criteria*: "Rather than asking 'which pattern is best?', ask 'what does my task need?'"
+- §2.4.3 *Hybrid Approaches*: workflow for the predictable parts, autonomy only where flexibility is essential.
+- §11.3.8 *Your Agents Lack Metacognition*: without progress checks, agents "can't abandon compromised trajectories or reset when stuck". Plan-based orchestration (§7.5.2) evaluates progress after each step. That is the no-progress exit our maker-checker lacked.
+- §15.7 *Key Insights* #4: "Completion needs external verification".
+
+**Where our data disagrees with the book:** §2.4.2 lists Handoff under "resource constraints (minimal coordination overhead)". On our dev set Handoff cost ~$2.05, about 2× the single agent, because every transfer is an extra model turn. "Minimal overhead" is relative to other multi-agent patterns, not to a single agent.
