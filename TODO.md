@@ -146,7 +146,7 @@ Book: Ch 2, 6, 7, 4.13, 11.3.5–11.3.6, 11.3.10
   - [x] Workflow vs autonomous orchestration (D43: single agent by default, a workflow for guarantees, autonomy only when the steps are unknown).
   - [x] Pattern selection criteria (D44: match the task shape; maker-checker only if the checker adds something new).
   - [x] Book links for D43 and D44 (§2.4.2, §2.4.3, §10.6.5, §11.3.8, §15.7).
-  - What deserves approval.
+  - [x] What deserves approval (D45: approve actions by impact × reversibility; answers go through outside checks).
   - Fail-safe termination.
   - Shared state vs messages.
 - [ ] ✅ Comparison table of patterns × {accuracy, tokens, $, latency, turns}. A demo of an approval surviving a restart.

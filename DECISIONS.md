@@ -744,3 +744,24 @@ This is a hypothesis from the transcripts and has not been measured separately. 
 - §15.7 *Key Insights* #4: "Completion needs external verification".
 
 **Where our data disagrees with the book:** §2.4.2 lists Handoff under "resource constraints (minimal coordination overhead)". On our dev set Handoff cost ~$2.05, about 2× the single agent, because every transfer is an extra model turn. "Minimal overhead" is relative to other multi-agent patterns, not to a single agent.
+
+## D45 — Week 3 discussion 3/5: what deserves approval (2026-11-09)
+
+**Problem:** where should a human approve, and where is approval just friction?
+
+**Decision (option A):** approve **actions** by impact × reversibility. Don't gate **answers** with approval; send them to outside checks instead, and a human sees an answer only when a check fails.
+
+| | Reversible | Irreversible |
+|---|---|---|
+| Low impact | no approval (reads, search) | log it |
+| High impact | approve, or review afterwards | always approve before it runs |
+
+**Why (our data):**
+- D40: `save_report` (writes a file) needed approval; read-only tools didn't.
+- D41: low confidence fired 0/42 and didn't predict errors (high 92% vs medium 94%), so "the model is unsure" is a weak approval trigger.
+- w3_step11: after a refusal the agent's own text was unreliable; only the code's record of the decision could be trusted.
+- D42: an approval also needs a guard against being answered twice.
+
+**Tradeoff:** too many approvals → approval fatigue (rubber-stamping); too few → an irreversible mistake gets through.
+
+**Bcdr:** drafting a comment is an answer (Verifier / evidence check); *posting* it where people act on it is the action that gets approval.
